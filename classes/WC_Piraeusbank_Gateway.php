@@ -84,7 +84,7 @@ class WC_Piraeusbank_Gateway extends WC_Payment_Gateway {
 			add_action( 'admin_notices', [ $this, 'authorize_warning_notice' ] );
 		}
 		if ( $this->pb_render_logo === "yes" ) {
-			$this->icon = apply_filters( 'piraeusbank_icon', plugins_url( 'img/piraeusbank.svg', __FILE__ ) );
+			$this->icon = apply_filters( 'piraeusbank_icon', plugins_url( '../img/piraeusbank.svg', __FILE__ ) );
 		}
 		
 		$this->cardholderNameFunctionality();
