@@ -125,7 +125,7 @@ class WC_Piraeusbank_Gateway extends WC_Payment_Gateway {
 			'type'        => 'text',
 			'label'       => __( 'Cardholder Name', self::PLUGIN_NAMESPACE ),
 			'placeholder' => __( 'Insert card holder name as required by Piraeus bank for validation', self::PLUGIN_NAMESPACE ),
-			'required'    => true,
+			'required'    => false,
 			'class'       => [ 'form-row-wide' ],
 			'clear'       => true,
 		];
@@ -887,7 +887,6 @@ class WC_Piraeusbank_Gateway extends WC_Payment_Gateway {
 			'billing_state'     => 'Billing state / county',
 			'billing_address_1' => 'Billing street address',
 			'billing_postcode'  => 'Billing postcode / ZIP',
-			'cardholder_name'   => 'Cardholder Name',
 		];
 		
 		foreach ( $requiredFields as $field => $info ) {
