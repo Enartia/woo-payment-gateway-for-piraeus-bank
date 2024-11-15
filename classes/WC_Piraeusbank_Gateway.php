@@ -124,7 +124,7 @@ class WC_Piraeusbank_Gateway extends WC_Payment_Gateway {
 		$billing_fields['cardholder_name'] = [
 			'type'        => 'text',
 			'label'       => __( 'Cardholder Name', self::PLUGIN_NAMESPACE ),
-			'placeholder' => __( 'Card holder name is optional Piraeus Bank for validation', self::PLUGIN_NAMESPACE ),
+			'placeholder' => __( 'Card holder name is optional by Piraeus Bank for validation', self::PLUGIN_NAMESPACE ),
 			'required'    => false,
 			'class'       => [ 'form-row-wide' ],
 			'clear'       => true,
