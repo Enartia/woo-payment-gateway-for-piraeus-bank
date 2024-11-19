@@ -124,8 +124,8 @@ class WC_Piraeusbank_Gateway extends WC_Payment_Gateway {
 		$billing_fields['cardholder_name'] = [
 			'type'        => 'text',
 			'label'       => __( 'Cardholder Name', self::PLUGIN_NAMESPACE ),
-			'placeholder' => __( 'Insert card holder name as required by Piraeus bank for validation', self::PLUGIN_NAMESPACE ),
-			'required'    => true,
+			'placeholder' => __( 'Card holder name is optional by Piraeus Bank for validation', self::PLUGIN_NAMESPACE ),
+			'required'    => false,
 			'class'       => [ 'form-row-wide' ],
 			'clear'       => true,
 		];
@@ -403,8 +403,8 @@ class WC_Piraeusbank_Gateway extends WC_Payment_Gateway {
 			echo wpautop( wptexturize( $description ) );
 		}
 		
-		$max_installments       = $this->ab_installments;
-		$installments_variation = $this->ab_installments_variation;
+		$max_installments       = $this->ab_installments ?? 1;
+		$installments_variation = $this->ab_installments_variation ?? [];
 		
 		if ( ! empty( $installments_variation ) ) {
 			$max_installments   = 1; // initialize the max installments
@@ -887,7 +887,6 @@ class WC_Piraeusbank_Gateway extends WC_Payment_Gateway {
 			'billing_state'     => 'Billing state / county',
 			'billing_address_1' => 'Billing street address',
 			'billing_postcode'  => 'Billing postcode / ZIP',
-			'cardholder_name'   => 'Cardholder Name',
 		];
 		
 		foreach ( $requiredFields as $field => $info ) {
