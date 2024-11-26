@@ -2,10 +2,10 @@
 Contributors: enartia,g.georgopoulos,georgekapsalakis,akatopodis
 Author URI: https://www.papaki.com
 Tags: ecommerce, woocommerce, payment gateway
-Tested up to: 6.6.1
+Tested up to: 6.7.1
 Requires at least: 4.0
 Stable tag: 3.0.1
-WC tested up to: 9.2.3
+WC tested up to: 9.4.2
 License: GPLv3 or later
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -85,6 +85,7 @@ In these cases you should follow the [instructions](https://docs.woocommerce.com
 Introduced the possibility for Block Editor checkout blocks
 Enhancement: Make the card holder name optional in checkout
 Changed the hook for translations to be loaded because of WordPress 6.7 release
+Updated compatibilities with WordPress 6.7 and WooCommerce 9.4.2
 
 = 2.0.7 =
 
