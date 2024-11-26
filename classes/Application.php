@@ -34,7 +34,7 @@ class Application {
 	}
 
 	public function load_languages() {
-		load_plugin_textdomain( 'woo-payment-gateway-for-piraeus-bank', false, dirname( plugin_basename( __FILE__ ) ) . '/languages/' );
+		load_plugin_textdomain( 'woo-payment-gateway-for-piraeus-bank', false, dirname( plugin_basename( __FILE__ ) ) . '/../languages/' );
 	}
 
 	/**
