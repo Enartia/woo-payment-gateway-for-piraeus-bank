@@ -31,7 +31,7 @@ class Checkout_Block {
 				'id'         => self::PLUGIN_NAMESPACE . '/card-holder',
 				'label'      => __( 'Cardholder Name', self::PLUGIN_NAMESPACE ),
 				'location'   => 'order',
-				'required'   => true,
+				'required'   => false,
 				'attributes' => [
 					'autocomplete' => 'card-holder',
 					'data-custom'  => 'custom data',
