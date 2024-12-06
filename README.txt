@@ -2,10 +2,10 @@
 Contributors: enartia,g.georgopoulos,georgekapsalakis,akatopodis
 Author URI: https://www.papaki.com
 Tags: ecommerce, woocommerce, payment gateway
-Tested up to: 6.6.1
+Tested up to: 6.7.1
 Requires at least: 4.0
-Stable tag: 1.7.1
-WC tested up to: 9.2.3
+Stable tag: 3.0.1
+WC tested up to: 9.4.2
 License: GPLv3 or later
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -35,7 +35,7 @@ Provides pre-auth transactions and free instalments.
 
 Just follow the standard [WordPress plugin installation procedure](http://codex.wordpress.org/Managing_Plugins).
 
-Provide to Piraeus bank at epayments@piraeusbank.gr the following information, in order to provide you with test account information. 
+Provide to Piraeus bank at epayments@piraeusbank.gr the following information, in order to provide you with test account information.
 WITH PERMALINKS SET
 * Website url :  http(s)://www.yourdomain.gr/
 * Referrer url : http(s)://www.yourdomain.gr/checkout/
@@ -51,7 +51,7 @@ WITHOUT PERMALINKS (MODE=SIMPLE)
 * Cancel page : http(s)://www.yourdomain.gr/?wc-api=WC_Piraeusbank_Gateway&peiraeus=cancel
 
 Response method : GET / POST
-Your's server IP Address 
+Your's server IP Address
 
 === HTTP Proxy ===
 In case your server doesn't provide a static IP address for your website, you can use an HTTP Proxy for outgoing requests from the server to the bank. The following fields need to be filled for http proxying:
@@ -64,21 +64,28 @@ HTTP Proxy Login Username/Password: Optional.
 == Frequently asked questions ==
 = CardHolder Name Field =
 According to Piraeus bank’s technical requirements related to 3D secure and SCA, the cardholder’s name must be sent before the customer is redirected to the bank’s payment environment. You choose not to show this field by uncheck the "Enable Cardholder Name Field" in plugin's settings, we will automatically send the full name inserted for the order, with the risk of having the bank refusing the transaction due to the validity of this field.
-= Enable Debug Mode = 
-In order to enable the debug mode, you should  add in your wp-config file (in the root folder of installation) the following lines: 
+= Enable Debug Mode =
+In order to enable the debug mode, you should  add in your wp-config file (in the root folder of installation) the following lines:
 define('WP_DEBUG', true);
 define('WP_DEBUG_LOG', true);
 define('WP_DEBUG_DISPLAY', false);
 
 Then you have to enable the debug mode from plugin's settings page.
 = Missing states information from a country =
-Woocommerce have a list of states for each country, from where we send the information to the Piraeus Bank for the fields BillAddrState, ShipAddrState. 
-But for some countries i.e. Cyprus, Germany woocommerce don't have the appropriate informations. 
+Woocommerce have a list of states for each country, from where we send the information to the Piraeus Bank for the fields BillAddrState, ShipAddrState.
+But for some countries i.e. Cyprus, Germany woocommerce don't have the appropriate informations.
 In these cases you should follow the [instructions](https://docs.woocommerce.com/document/addmodify-states/# ) of Woocommerce to add/edit States.
 
 
 
 == Changelog ==
+
+= 3.0.1 =
+
+Introduced the possibility for Block Editor checkout blocks
+Enhancement: Make the card holder name optional in checkout
+Changed the hook for translations to be loaded because of WordPress 6.7 release
+Updated compatibilities with WordPress 6.7 and WooCommerce 9.4.2
 
 = 2.0.7 =
 
@@ -128,7 +135,7 @@ Add Germany's states list in woo commerce
 
 = 1.6.2 =
 Add cardholder name input field in checkout
-Extra validation for foreign countries state field 
+Extra validation for foreign countries state field
 Add cyprus states list in woocommerce
 Add debugging mode, to log certain information
 Replaced deprecated reduce_order_stock with wc_reduce_stock_levels
@@ -143,40 +150,40 @@ add transaction id in order note
 Compatibility with PSD2 (3D Secure version 2)
 
 
-= 1.5.8 = 
+= 1.5.8 =
 fix an issue with proxy settings
 
-= 1.5.7 = 
+= 1.5.7 =
 Sanitize Data
 update compatibility status with WooCommerce 4.3.0
 
-= 1.5.6 = 
+= 1.5.6 =
 update compatibility status with WooCommerce 4.1.0
 
-= 1.5.5 = 
+= 1.5.5 =
 update compatibility status with WooCommerce 4
 
-= 1.5.4 = 
+= 1.5.4 =
 fix release version
 
-= 1.5.3 = 
+= 1.5.3 =
 Update translations
 
-= 1.5.2 = 
+= 1.5.2 =
 Added max size for Logo of Piraeus Bank
 
-= 1.5.1 = 
+= 1.5.1 =
 For downloadable products, auto mark the order as completed only if all the products are downloadable
 Update translations
 Added option to display or not Piraeus Bank's logo in checkout page.
 
-= 1.5.0 = 
+= 1.5.0 =
 POST response method is now available
 Added Max number of instalments based on order total
 Support for English, German and Russian language in redirect page.
 
 = 1.4.2 =
-Fix issue for failed status of order but with paid transaction 
+Fix issue for failed status of order but with paid transaction
 
 = 1.4.1 =
 Bug Fixes (Pay again, after failed payment attempt)
