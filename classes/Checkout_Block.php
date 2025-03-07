@@ -25,19 +25,20 @@ class Checkout_Block {
 		if ( $pb_cardholder_name !== 'yes' ) {
 			return;
 		}
-		
-		woocommerce_register_additional_checkout_field(
-			[
-				'id'         => self::PLUGIN_NAMESPACE . '/card-holder',
-				'label'      => __( 'Cardholder Name', self::PLUGIN_NAMESPACE ),
-				'location'   => 'order',
-				'required'   => false,
-				'attributes' => [
-					'autocomplete' => 'card-holder',
-					'data-custom'  => 'custom data',
+		if(function_exists('woocommerce_register_additional_checkout_field')) {
+			woocommerce_register_additional_checkout_field(
+				[
+					'id'         => self::PLUGIN_NAMESPACE . '/card-holder',
+					'label'      => __( 'Cardholder Name', self::PLUGIN_NAMESPACE ),
+					'location'   => 'order',
+					'required'   => false,
+					'attributes' => [
+						'autocomplete' => 'card-holder',
+						'data-custom'  => 'custom data',
+					],
 				],
-			],
-		);
+			);
+		}		
 	}
 	
 	/**
