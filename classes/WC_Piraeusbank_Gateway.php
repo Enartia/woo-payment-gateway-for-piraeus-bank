@@ -884,7 +884,6 @@ class WC_Piraeusbank_Gateway extends WC_Payment_Gateway {
 			'billing_email'     => 'E-mail address',
 			'billing_city'      => 'Billing town/city',
 			'billing_country'   => 'Billing country / region',
-			'billing_state'     => 'Billing state / county',
 			'billing_address_1' => 'Billing street address',
 			'billing_postcode'  => 'Billing postcode / ZIP',
 		];
