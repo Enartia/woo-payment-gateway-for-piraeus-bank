@@ -3,7 +3,7 @@
   Plugin Name: Piraeus Bank WooCommerce Payment Gateway
   Plugin URI: https://www.papaki.com
   Description: Piraeus Bank Payment Gateway allows you to accept payment through various channels such as Maestro, Mastercard, AMex cards, Diners  and Visa cards On your Woocommerce Powered Site.
-  Version: 3.0.1
+  Version: 3.1.1
   Author: Papaki
   Author URI: https://www.papaki.com
   License: GPL-3.0+
