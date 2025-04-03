@@ -403,8 +403,8 @@ class WC_Piraeusbank_Gateway extends WC_Payment_Gateway {
 			echo wpautop( wptexturize( $description ) );
 		}
 
-		$max_installments       = $this->ab_installments ?? 1;
-		$installments_variation = $this->ab_installments_variation ?? [];
+		$max_installments       = $this->pb_installments ?? 1;
+		$installments_variation = $this->pb_installments_variation ?? [];
 
 		if ( ! empty( $installments_variation ) ) {
 			$max_installments   = 1; // initialize the max installments
