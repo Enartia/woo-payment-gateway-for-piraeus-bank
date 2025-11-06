@@ -1,10 +1,10 @@
 === Piraeus Bank WooCommerce Payment Gateway ===
-Contributors: enartia,g.georgopoulos,georgekapsalakis,akatopodis
+Contributors: enartia,g.georgopoulos,georgekapsalakis,akatopodis,tmalliotakis
 Author URI: https://www.papaki.com
 Tags: ecommerce, woocommerce, payment gateway
 Tested up to: 6.7.1
 Requires at least: 4.0
-Stable tag: 3.1.2
+Stable tag: 3.1.3-beta
 WC tested up to: 9.4.2
 License: GPLv3 or later
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
@@ -79,6 +79,13 @@ In these cases you should follow the [instructions](https://docs.woocommerce.com
 
 
 == Changelog ==
+
+= 3.1.3-beta =
+IRIS payments
+With this version the IRIS payments can be completed successfully
+
+= 3.1.2 =
+Fix installments issue
 
 = 3.0.1 =
 
