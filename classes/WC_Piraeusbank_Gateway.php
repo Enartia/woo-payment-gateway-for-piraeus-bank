@@ -700,11 +700,11 @@ class WC_Piraeusbank_Gateway extends WC_Payment_Gateway {
 			$SupportReferenceID = absint( $_REQUEST['SupportReferenceID'] );
 			$ApprovalCode       = filter_var( $_REQUEST['ApprovalCode'], FILTER_SANITIZE_STRING );
 			$Parameters         = filter_var( $_REQUEST['Parameters'], FILTER_SANITIZE_STRING );
+			$TransactionId      = isset( $_REQUEST['TransactionId'] ) ? absint( $_REQUEST['TransactionId'] ) : '';
 
 			// AuthStatus and PackageNo may be omitted due to IRIS payments — read them defensively only
 			$AuthStatus    = isset( $_REQUEST['AuthStatus'] ) ? filter_var( $_REQUEST['AuthStatus'], FILTER_SANITIZE_STRING ) : '';
 			$PackageNo     = isset( $_REQUEST['PackageNo'] ) ? absint( $_REQUEST['PackageNo'] ) : '';
-			$TransactionId = isset( $_REQUEST['TransactionId'] ) ? absint( $_REQUEST['TransactionId'] ) : '';
 
 			// Detect PaymentMethod and CardType. 
 			// Try top-level then inside Parameters.
