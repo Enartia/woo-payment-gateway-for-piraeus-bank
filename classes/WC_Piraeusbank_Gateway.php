@@ -706,34 +706,21 @@ class WC_Piraeusbank_Gateway extends WC_Payment_Gateway {
 			$AuthStatus    = isset( $_REQUEST['AuthStatus'] ) ? filter_var( $_REQUEST['AuthStatus'], FILTER_SANITIZE_STRING ) : '';
 			$PackageNo     = isset( $_REQUEST['PackageNo'] ) ? absint( $_REQUEST['PackageNo'] ) : '';
 
-			// Detect PaymentMethod and CardType. 
-			// Try top-level then inside Parameters.
-			$PaymentMethod = '';
-			$CardType      = '';
+			// PaymentMethod and CardType
+			$PaymentMethod    = isset( $_REQUEST['PaymentMethod'] ) ? filter_var( $_REQUEST['PaymentMethod'], FILTER_SANITIZE_STRING ) : '';
+			$CardType         = isset( $_REQUEST['CardType'] ) ? filter_var( $_REQUEST['CardType'], FILTER_SANITIZE_STRING ) : '';
 
-			if ( isset( $_REQUEST['PaymentMethod'] ) ) {
-				$PaymentMethod = filter_var( $_REQUEST['PaymentMethod'], FILTER_SANITIZE_STRING );
-			}
-
-			if ( isset( $_REQUEST['CardType'] ) ) {
-				$CardType = filter_var( $_REQUEST['CardType'], FILTER_SANITIZE_STRING );
-			}
-
-			$parsedParameters = [];
-			if ( $Parameters !== '' ) {
-				// Attempt to parse a query-string style Parameters
-				parse_str( $Parameters, $parsedParameters );
-				if ( empty( $PaymentMethod ) && isset( $parsedParameters['PaymentMethod'] ) ) {
-					$PaymentMethod = filter_var( $parsedParameters['PaymentMethod'], FILTER_SANITIZE_STRING );
-				}
-				if ( empty( $CardType ) && isset( $parsedParameters['CardType'] ) ) {
-					$CardType = filter_var( $parsedParameters['CardType'], FILTER_SANITIZE_STRING );
-				}
-			}
-
-			// Log parsed parameters for debugging (kept minimal and limited to the new fields)
+			// Log PaymentMethod and CardType for debugging
 			if ( $this->pb_enable_log === 'yes' ) {
 				error_log( 'PaymentMethod: ' . $PaymentMethod . ' CardType: ' . $CardType );
+			}
+
+			// create AuthStatus and PackageNo strings for IRIS compatibility
+			$AuthStatusStr = '';
+			$PackageNoStr  = '';
+			if ($PaymentMethod !== 'IRIS' && $CardType !== '15') {
+				$AuthStatusStr = $AuthStatus . ';';
+				$PackageNoStr  = $PackageNo . ';';
 			}
 
 			$ttquery = $wpdb->prepare(
@@ -761,10 +748,30 @@ class WC_Piraeusbank_Gateway extends WC_Payment_Gateway {
 				$transTicket  = $transaction->trans_ticket;
 				$stcon        = $transTicket . $this->pb_PosId . $this->pb_AcquirerId . $order_id . $ApprovalCode . $Parameters . $ResponseCode . $SupportReferenceID . $AuthStatus . $PackageNo . $StatusFlag;
 				$conHash      = strtoupper( hash( 'sha256', $stcon ) );
-				$stconHmac    = $transTicket . ';' . $this->pb_PosId . ';' . $this->pb_AcquirerId . ';' . $order_id . ';' . $ApprovalCode . ';' . $Parameters . ';' . $ResponseCode . ';' . $SupportReferenceID . ';' . $AuthStatus . ';' . $PackageNo . ';' . $StatusFlag;
+				$stconHmac    = $transTicket . ';' . $this->pb_PosId . ';' . $this->pb_AcquirerId . ';' . $order_id . ';' . $ApprovalCode . ';' . $Parameters . ';' . $ResponseCode . ';' . $SupportReferenceID . ';' . $AuthStatusStr . $PackageNoStr . $StatusFlag;
 				$consHashHmac = strtoupper( hash_hmac( 'sha256', $stconHmac, $transTicket ) );
 
-				if ( $consHashHmac !== $HashKey && $conHash !== $HashKey ) {
+    			if ( $this->pb_enable_log === 'yes' ) {
+    				error_log( '---- comparison checks -----' );
+    				error_log( 'transTicket: ' . $transTicket . 
+					           ' pb_PosId: ' . $this->pb_PosId . 
+							   ' pb_AcquirerId: ' . $this->pb_AcquirerId . 
+							   ' order_id: ' . $order_id . 
+							   ' ApprovalCode: ' . $ApprovalCode . 
+							   ' Parameters: ' . $Parameters . 
+							   ' ResponseCode: ' . $ResponseCode . 
+							   ' SupportReferenceID: ' . $SupportReferenceID . 
+							   ' AuthStatus: ' . $AuthStatus . 
+							   ' PackageNo: ' . $PackageNo . 
+							   ' StatusFlag: ' . $StatusFlag );
+    				error_log( 'stcon: ' . $stcon);
+    				error_log( 'conHash: ' . $conHash);
+					error_log( 'stconHmac: ' . $stconHmac);
+					error_log( 'consHashHmac: ' . $consHashHmac);
+    				error_log( '---- End of comparison checks ----' );
+    			}
+
+			    if ( $consHashHmac !== $HashKey && $conHash !== $HashKey ) {
 					continue;
 				}
 
