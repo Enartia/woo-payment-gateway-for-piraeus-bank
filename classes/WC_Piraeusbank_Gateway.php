@@ -753,7 +753,8 @@ class WC_Piraeusbank_Gateway extends WC_Payment_Gateway {
 
     			if ( $this->pb_enable_log === 'yes' ) {
     				error_log( '---- comparison checks -----' );
-    				error_log( 'transTicket: ' . $transTicket . 
+    				error_log( 'Bank HashKey: ' . $HashKey);
+					error_log( 'transTicket: ' . $transTicket . 
 					           ' pb_PosId: ' . $this->pb_PosId . 
 							   ' pb_AcquirerId: ' . $this->pb_AcquirerId . 
 							   ' order_id: ' . $order_id . 
