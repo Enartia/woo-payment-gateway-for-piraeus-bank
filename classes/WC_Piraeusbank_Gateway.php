@@ -743,27 +743,6 @@ class WC_Piraeusbank_Gateway extends WC_Payment_Gateway {
 				$stconHmac    = $transTicket . ';' . $this->pb_PosId . ';' . $this->pb_AcquirerId . ';' . $order_id . ';' . $ApprovalCode . ';' . $Parameters . ';' . $ResponseCode . ';' . $SupportReferenceID . ';' . $AuthStatus . ';' . $PackageNo . ';' . $StatusFlag;
 				$consHashHmac = strtoupper( hash_hmac( 'sha256', $stconHmac, $transTicket ) );
 
-    			if ( $this->pb_enable_log === 'yes' ) {
-    				error_log( '---- comparison checks -----' );
-    				error_log( 'Bank HashKey: ' . $HashKey);
-					error_log( 'transTicket: ' . $transTicket . 
-					           ' pb_PosId: ' . $this->pb_PosId . 
-							   ' pb_AcquirerId: ' . $this->pb_AcquirerId . 
-							   ' order_id: ' . $order_id . 
-							   ' ApprovalCode: ' . $ApprovalCode . 
-							   ' Parameters: ' . $Parameters . 
-							   ' ResponseCode: ' . $ResponseCode . 
-							   ' SupportReferenceID: ' . $SupportReferenceID . 
-							   ' AuthStatus: ' . $AuthStatus . 
-							   ' PackageNo: ' . $PackageNo . 
-							   ' StatusFlag: ' . $StatusFlag );
-    				error_log( 'stcon: ' . $stcon);
-    				error_log( 'conHash: ' . $conHash);
-					error_log( 'stconHmac: ' . $stconHmac);
-					error_log( 'consHashHmac: ' . $consHashHmac);
-    				error_log( '---- End of comparison checks ----' );
-    			}
-
 			    if ( $consHashHmac !== $HashKey && $conHash !== $HashKey ) {
 					continue;
 				}
