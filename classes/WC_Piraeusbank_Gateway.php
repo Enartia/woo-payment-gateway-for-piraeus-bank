@@ -704,34 +704,13 @@ class WC_Piraeusbank_Gateway extends WC_Payment_Gateway {
 
 			// AuthStatus and PackageNo may be omitted due to IRIS payments — read them defensively only
 			$AuthStatus    = isset( $_REQUEST['AuthStatus'] ) ? filter_var( $_REQUEST['AuthStatus'], FILTER_SANITIZE_STRING ) : '';
-			$PackageNo     = isset( $_REQUEST['PackageNo'] ) ? absint( $_REQUEST['PackageNo'] ) : '';
+			$PackageNo     = !empty( $_REQUEST['PackageNo'] ) ? absint( $_REQUEST['PackageNo'] ) : '';
 
-			// Detect PaymentMethod and CardType. 
-			// Try top-level then inside Parameters.
-			$PaymentMethod = '';
-			$CardType      = '';
+			// PaymentMethod and CardType
+			$PaymentMethod    = isset( $_REQUEST['PaymentMethod'] ) ? filter_var( $_REQUEST['PaymentMethod'], FILTER_SANITIZE_STRING ) : '';
+			$CardType         = isset( $_REQUEST['CardType'] ) ? filter_var( $_REQUEST['CardType'], FILTER_SANITIZE_STRING ) : '';
 
-			if ( isset( $_REQUEST['PaymentMethod'] ) ) {
-				$PaymentMethod = filter_var( $_REQUEST['PaymentMethod'], FILTER_SANITIZE_STRING );
-			}
-
-			if ( isset( $_REQUEST['CardType'] ) ) {
-				$CardType = filter_var( $_REQUEST['CardType'], FILTER_SANITIZE_STRING );
-			}
-
-			$parsedParameters = [];
-			if ( $Parameters !== '' ) {
-				// Attempt to parse a query-string style Parameters
-				parse_str( $Parameters, $parsedParameters );
-				if ( empty( $PaymentMethod ) && isset( $parsedParameters['PaymentMethod'] ) ) {
-					$PaymentMethod = filter_var( $parsedParameters['PaymentMethod'], FILTER_SANITIZE_STRING );
-				}
-				if ( empty( $CardType ) && isset( $parsedParameters['CardType'] ) ) {
-					$CardType = filter_var( $parsedParameters['CardType'], FILTER_SANITIZE_STRING );
-				}
-			}
-
-			// Log parsed parameters for debugging (kept minimal and limited to the new fields)
+			// Log PaymentMethod and CardType for debugging
 			if ( $this->pb_enable_log === 'yes' ) {
 				error_log( 'PaymentMethod: ' . $PaymentMethod . ' CardType: ' . $CardType );
 			}
@@ -764,7 +743,7 @@ class WC_Piraeusbank_Gateway extends WC_Payment_Gateway {
 				$stconHmac    = $transTicket . ';' . $this->pb_PosId . ';' . $this->pb_AcquirerId . ';' . $order_id . ';' . $ApprovalCode . ';' . $Parameters . ';' . $ResponseCode . ';' . $SupportReferenceID . ';' . $AuthStatus . ';' . $PackageNo . ';' . $StatusFlag;
 				$consHashHmac = strtoupper( hash_hmac( 'sha256', $stconHmac, $transTicket ) );
 
-				if ( $consHashHmac !== $HashKey && $conHash !== $HashKey ) {
+			    if ( $consHashHmac !== $HashKey && $conHash !== $HashKey ) {
 					continue;
 				}
 
@@ -792,11 +771,11 @@ class WC_Piraeusbank_Gateway extends WC_Payment_Gateway {
 				$order->add_order_note( __( 'Payment Via Peiraeus Bank<br />Transaction ID: ', self::PLUGIN_NAMESPACE ) . $TransactionId . __( '<br />Support Reference ID: ', self::PLUGIN_NAMESPACE ) . $SupportReferenceID );
 
 				// Mark IRIS payments explicitly when detected
-				if ( ! empty( $PaymentMethod ) && strtoupper( $PaymentMethod ) === 'IRIS' ) {
+				if ( !empty( $PaymentMethod ) && strtoupper( $PaymentMethod ) === 'IRIS' ) {
 					$order->add_order_note( __( 'Payment method detected: IRIS (Piraeus Bank).', self::PLUGIN_NAMESPACE ) );
-				} elseif ( ! empty( $CardType ) && (string) $CardType === '15' ) {
+				} elseif ( !empty( $CardType ) && (string) $CardType === '15' ) {
 					// CardType '15' also indicates IRIS according to epay spec
-					$order->add_order_note( __( 'CardType indicates IRIS payment (CardType=15).', self::PLUGIN_NAMESPACE ) );
+					$order->add_order_note( __( 'CardType indicates IRIS payment (CardType:15).', self::PLUGIN_NAMESPACE ) );
 				}
 
 				if ( $order->get_status() === 'processing' ) {
