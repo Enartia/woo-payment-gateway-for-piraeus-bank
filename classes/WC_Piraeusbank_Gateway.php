@@ -237,7 +237,7 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
                 'title'       => __( 'Description', self::PLUGIN_NAMESPACE ),
                 'type'        => 'textarea',
                 'description' => __( 'This controls the description which the user sees during checkout.', self::PLUGIN_NAMESPACE ),
-                'default'     => __( 'Pay Via Piraeus Bank: Accepts  Mastercard, Visa cards and etc.', self::PLUGIN_NAMESPACE ),
+                'default'     => __( 'Pay Via Piraeus Bank - Pay by Card or IRIS.', self::PLUGIN_NAMESPACE ),
             ],
             'pb_render_logo'            => [
                 'title'       => __( 'Display the logo of Piraeus Bank', self::PLUGIN_NAMESPACE ),

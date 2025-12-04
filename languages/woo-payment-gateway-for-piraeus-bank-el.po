@@ -116,8 +116,8 @@ msgid "This controls the description which the user sees during checkout."
 msgstr "Ελέγχει την περιγραφή που εμφανίζεται στον χρήστη κατά τη πληρωμή."
 
 #: classes/WC_Piraeusbank_Gateway.php:218
-msgid "Pay Via Piraeus Bank: Accepts  Mastercard, Visa cards and etc."
-msgstr "Πληρωμή μέσω Τράπεζας Πειραιώς: Δέχεται Mastercard, Visa και Maestro."
+msgid "Pay Via Piraeus Bank - Pay by Card or IRIS."
+msgstr "Πληρωμή μέσω Τράπεζας Πειραιώς - Πληρωμή με κάρτα ή IRIS."
 
 #: classes/WC_Piraeusbank_Gateway.php:221
 msgid "Display the logo of Piraeus Bank"
