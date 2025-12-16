@@ -8,7 +8,7 @@
   Author URI: https://www.papaki.com
   License: GPL-3.0+
   License URI: http://www.gnu.org/licenses/gpl-3.0.txt
-  WC tested up to: 10.2.2
+  WC tested up to: 10.4.2
   Text Domain: woo-payment-gateway-for-piraeus-bank
   Domain Path: /languages
 */
