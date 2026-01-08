@@ -17,6 +17,7 @@
  * @property string   $pb_cardholder_name
  * @property string   $pb_enable_log
  * @property string   $pb_order_note
+ * @property int      $pb_transaction_timeout
  * @property string   $notify_url
  * @property int|null $redirect_page_id
  * @noinspection DuplicatedCode
@@ -68,6 +69,7 @@ class WC_Piraeusbank_Gateway extends WC_Payment_Gateway {
 		$this->pb_cardholder_name        = sanitize_text_field( $this->get_option( 'pb_cardholder_name' ) );
 		$this->pb_enable_log             = sanitize_text_field( $this->get_option( 'pb_enable_log' ) );
 		$this->pb_order_note             = sanitize_text_field( $this->get_option( 'pb_order_note' ) );
+		$this->pb_transaction_timeout    = absint( $this->get_option( 'pb_transaction_timeout', 10 ) );
 
 		//Actions
 		add_action( 'woocommerce_receipt_piraeusbank_gateway', [ $this, 'receipt_page' ] );
@@ -332,7 +334,18 @@ class WC_Piraeusbank_Gateway extends WC_Payment_Gateway {
 				'default'     => 'no',
 				'description' => __( 'Enabling this will send an email with the support reference id and transaction id to the customer, after the transaction has been completed (either on success or failure)', self::PLUGIN_NAMESPACE ),
 			],
-
+            'pb_transaction_timeout'    => [
+				'title'       => __( 'Transaction Timeout (minutes)', self::PLUGIN_NAMESPACE ),
+				'type'        => 'number',
+				'description' => __( 'Maximum time in minutes allowed for a payment transaction to complete. After this period, fail callbacks will be rejected for security. Default: 10 minutes.', self::PLUGIN_NAMESPACE ),
+				'default'     => '10',
+				'desc_tip'    => true,
+				'custom_attributes' => [
+					'min'  => '1',
+					'max'  => '120',
+					'step' => '1',
+				],
+			],
 		];
 	}
 
@@ -819,8 +832,16 @@ class WC_Piraeusbank_Gateway extends WC_Payment_Gateway {
 		}
 
 		if ( isset( $_REQUEST['peiraeus'], $_REQUEST['MerchantReference'] ) && $_REQUEST['peiraeus'] === 'fail' ) {
-			$order_id     = filter_var( $_REQUEST['MerchantReference'], FILTER_SANITIZE_STRING );
-			$order        = new WC_Order( $order_id );
+			$order_id = filter_var( $_REQUEST['MerchantReference'], FILTER_SANITIZE_STRING );
+			$order    = new WC_Order( $order_id );
+
+			// Validate the fail callback request for security
+			$tt = $this->validate_fail_callback_security( $order_id, $order );
+			if ( $tt === false ) {
+				wp_redirect( wc_get_checkout_url() );
+				exit;
+			}
+
 			$message      = __( 'Thank you for shopping with us. <br />However, the transaction wasn\'t successful, payment wasn\'t received.', self::PLUGIN_NAMESPACE );
 			$message_type = 'error';
 
@@ -833,9 +854,11 @@ class WC_Piraeusbank_Gateway extends WC_Payment_Gateway {
 			//Add Admin Order Note
 			$order->add_order_note( $message . '<br />Piraeus Bank Support Reference ID: ' . $transaction_id );
 
-
 			//Update the order status
 			$order->update_status( 'failed' );
+
+			// Invalidate the transaction ticket to prevent replay attacks
+			$this->invalidate_transaction_ticket( $order_id, $tt->trans_ticket );
 
 			$pb_message = $this->set_message( $order, $message, $message_type );
 		}
@@ -893,6 +916,77 @@ class WC_Piraeusbank_Gateway extends WC_Payment_Gateway {
 		$this->generic_add_meta( $order->get_id(), '_piraeusbank_message_debug', $pb_message );
 
 		return $pb_message;
+	}
+
+	/**
+	 * Validates a fail callback request for security.
+	 * Checks for valid transaction ticket, timeout, and order key.
+	 *
+	 * @param string   $order_id The order ID from the callback
+	 * @param WC_Order $order    The WooCommerce order object
+	 *
+	 * @return object|false Returns the transaction ticket object if valid, false otherwise
+	 */
+	private function validate_fail_callback_security( string $order_id, WC_Order $order ) {
+		global $wpdb;
+
+		// Security check: Verify that a recent transaction ticket exists for this order
+		// This ensures the order actually went through our payment initiation process
+		$ttquery = $wpdb->prepare(
+			'SELECT trans_ticket, timestamp FROM ' . $wpdb->prefix . 'piraeusbank_transactions WHERE merch_ref = %s ORDER BY timestamp DESC LIMIT 1',
+			[ $order_id ]
+		);
+		$tt = $wpdb->get_row( $ttquery );
+
+		// If no transaction ticket exists, this is likely an unauthorized request
+		if ( empty( $tt ) ) {
+			if ( $this->pb_enable_log === 'yes' ) {
+				error_log( 'Piraeus Bank: Unauthorized fail callback attempt for order ' . $order_id . ' - no transaction ticket found' );
+			}
+			return false;
+		}
+
+		// Security check: Verify the transaction ticket was created recently (within configured timeout)
+		// This prevents attacks using old/enumerated order IDs
+		$ticket_time       = strtotime( $tt->timestamp );
+		$current_time      = current_time( 'timestamp', 1 ); // GMT timestamp
+		$time_diff_minutes = ( $current_time - $ticket_time ) / 60;
+		$timeout_minutes   = $this->pb_transaction_timeout > 0 ? $this->pb_transaction_timeout : 10;
+
+		if ( $time_diff_minutes > $timeout_minutes ) {
+			if ( $this->pb_enable_log === 'yes' ) {
+				error_log( 'Piraeus Bank: Fail callback rejected for order ' . $order_id . ' - transaction ticket expired (created ' . round( $time_diff_minutes ) . ' minutes ago)' );
+			}
+			return false;
+		}
+
+		// Security check: Verify order key matches if provided (additional layer of security)
+		if ( isset( $_REQUEST['key'] ) && $_REQUEST['key'] !== $order->get_order_key() ) {
+			if ( $this->pb_enable_log === 'yes' ) {
+				error_log( 'Piraeus Bank: Fail callback rejected for order ' . $order_id . ' - order key mismatch' );
+			}
+			return false;
+		}
+
+		return $tt;
+	}
+
+	/**
+	 * Invalidates a transaction ticket after processing to prevent replay attacks.
+	 *
+	 * @param string $order_id     The order ID
+	 * @param string $trans_ticket The transaction ticket to invalidate
+	 *
+	 * @return void
+	 */
+	private function invalidate_transaction_ticket( string $order_id, string $trans_ticket ): void {
+		global $wpdb;
+
+		$wpdb->delete(
+			$wpdb->prefix . 'piraeusbank_transactions',
+			[ 'merch_ref' => $order_id, 'trans_ticket' => $trans_ticket ],
+			[ '%s', '%s' ]
+		);
 	}
 
 	/**
