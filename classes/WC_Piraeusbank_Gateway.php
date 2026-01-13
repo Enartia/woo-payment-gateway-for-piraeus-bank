@@ -572,6 +572,11 @@ class WC_Piraeusbank_Gateway extends WC_Payment_Gateway {
 			if ( (int) $oResult->IssueNewTicketResult->ResultCode === 0 ) {
 				$wpdb->insert( $wpdb->prefix . 'piraeusbank_transactions', [ 'trans_ticket' => $oResult->IssueNewTicketResult->TranTicket, 'merch_ref' => $order_id, 'timestamp' => current_time( 'mysql', 1 ) ] );
 
+				// Store order ID in session for callback validation
+				if ( WC()->session ) {
+					WC()->session->set( 'pb_pending_order_id', $order_id );
+				}
+
 				wc_enqueue_js( '
 				$.blockUI({
 						message: "' . esc_js( __( 'Thank you for your order. We are now redirecting you to Piraeus Bank to make payment.', self::PLUGIN_NAMESPACE ) ) . '",
@@ -759,6 +764,12 @@ class WC_Piraeusbank_Gateway extends WC_Payment_Gateway {
 				$this->generic_add_meta( $order_id, '_piraeusbank_message_debug', [ $pb_message, $consHashHmac . '!=' . $HashKey ] );
 
 				$order->update_status( 'failed' );
+
+				// Clear session after processing
+				if ( WC()->session ) {
+					WC()->session->set( 'pb_pending_order_id', null );
+				}
+
 				$checkout_url = wc_get_checkout_url();
 				wp_redirect( $checkout_url );
 				exit;
@@ -800,12 +811,22 @@ class WC_Piraeusbank_Gateway extends WC_Payment_Gateway {
 
 				// Empty cart
 				WC()->cart->empty_cart();
+
+				// Clear session after successful processing
+				if ( WC()->session ) {
+					WC()->session->set( 'pb_pending_order_id', null );
+				}
 			}
 			else if ( $ResponseCode == 11 ) {
 				$message      = __( 'Thank you for shopping with us.<br />Your transaction was previously received.<br />', self::PLUGIN_NAMESPACE );
 				$message_type = 'success';
 
 				$pb_message = $this->set_message( $order, $message, $message_type );
+
+				// Clear session after processing
+				if ( WC()->session ) {
+					WC()->session->set( 'pb_pending_order_id', null );
+				}
 			}
 			else { //Failed Response codes
 				$message      = __( 'Thank you for shopping with us. <br />However, the transaction wasn\'t successful, payment wasn\'t received.', self::PLUGIN_NAMESPACE );
@@ -815,11 +836,27 @@ class WC_Piraeusbank_Gateway extends WC_Payment_Gateway {
 
 				//Update the order status
 				$order->update_status( 'failed' );
+
+				// Clear session after processing
+				if ( WC()->session ) {
+					WC()->session->set( 'pb_pending_order_id', null );
+				}
 			}
 		}
 
 		if ( isset( $_REQUEST['peiraeus'], $_REQUEST['MerchantReference'] ) && $_REQUEST['peiraeus'] === 'fail' ) {
 			$order_id     = filter_var( $_REQUEST['MerchantReference'], FILTER_SANITIZE_STRING );
+
+			// Session validation: ensure the callback matches the user who initiated the payment
+			$session_order_id = WC()->session ? WC()->session->get( 'pb_pending_order_id' ) : null;
+			if ( $session_order_id === null || $session_order_id != $order_id ) {
+				if ( $this->pb_enable_log === 'yes' ) {
+					error_log( 'Piraeus Bank fail callback rejected: session validation failed for order ' . $order_id );
+				}
+				wp_redirect( wc_get_checkout_url() );
+				exit;
+			}
+
 			$order        = new WC_Order( $order_id );
 			$message      = __( 'Thank you for shopping with us. <br />However, the transaction wasn\'t successful, payment wasn\'t received.', self::PLUGIN_NAMESPACE );
 			$message_type = 'error';
@@ -838,9 +875,32 @@ class WC_Piraeusbank_Gateway extends WC_Payment_Gateway {
 			$order->update_status( 'failed' );
 
 			$pb_message = $this->set_message( $order, $message, $message_type );
+
+			// Clear session after fail processing
+			if ( WC()->session ) {
+				WC()->session->set( 'pb_pending_order_id', null );
+			}
 		}
 
 		if ( isset( $_REQUEST['peiraeus'] ) && ( $_REQUEST['peiraeus'] === 'cancel' ) ) {
+			// Session validation for cancel callback
+			$cancel_order_id = isset( $_REQUEST['MerchantReference'] ) ? filter_var( $_REQUEST['MerchantReference'], FILTER_SANITIZE_STRING ) : null;
+			$session_order_id = WC()->session ? WC()->session->get( 'pb_pending_order_id' ) : null;
+
+			// Reject if session doesn't match (when order ID is provided)
+			if ( $cancel_order_id !== null && ( $session_order_id === null || $session_order_id != $cancel_order_id ) ) {
+				if ( $this->pb_enable_log === 'yes' ) {
+					error_log( 'Piraeus Bank cancel callback rejected: session validation failed for order ' . $cancel_order_id );
+				}
+				wp_redirect( wc_get_checkout_url() );
+				exit;
+			}
+
+			// Clear session after cancel processing
+			if ( WC()->session ) {
+				WC()->session->set( 'pb_pending_order_id', null );
+			}
+
 			$checkout_url = wc_get_checkout_url();
 			wp_redirect( $checkout_url );
 			exit;
