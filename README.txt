@@ -4,22 +4,20 @@ Author URI: https://www.papaki.com
 Tags: ecommerce, woocommerce, payment gateway
 Tested up to: 6.7.1
 Requires at least: 4.0
-Stable tag: 3.1.5
+Stable tag: 3.2.0
 WC tested up to: 9.4.2
 License: GPLv3 or later
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
-
+PHP: 7.4
 
 
 Adds Piraeus Bank paycenter as a payment Gateway for WooCommerce
 
 == Important Notice ==
-1. The plugin currently does not support the blocks system but still uses legacy.
-
-2. Piraeus Bank has announced that it will gradually abolish the Preauthorized Payment Service for all merchants, beginning from the ones obtained MIDs from 29/1/2019 onwards.
+1. Piraeus Bank has announced that it will gradually abolish the Preauthorized Payment Service for all merchants, beginning from the ones obtained MIDs from 29/1/2019 onwards.
 You are highly recommended to disable the preAuthorized Payment Service as soon as possible.
 
-3. We would like to inform you that our Plugin is compatible with the 3D Secure version 2 changes required from Piraeus bank.
+2. We would like to inform you that our Plugin is compatible with the 3D Secure version 2 changes required from Piraeus bank.
 
 == Description ==
 This plugin adds Piraeus Bank paycenter as a payment gateway for WooCommerce. A contract between you and the Bank must be previously signed. Based on original plugin "Piraeus Bank Greece Payment Gateway for WooCommerce" by emspace.gr [https://wordpress.org/plugins/woo-payment-gateway-piraeus-bank-greece/]
@@ -28,6 +26,7 @@ It uses the redirect method, and SSL is not required.
 
 
 Requires SOAP installed in the server / hosting.
+
 == Features ==
 Provides pre-auth transactions and free instalments.
 
@@ -79,6 +78,9 @@ In these cases you should follow the [instructions](https://docs.woocommerce.com
 
 
 == Changelog ==
+
+= 3.2.0 =
+Code refactoring.
 
 = 3.1.5 =
 Security fix
