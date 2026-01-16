@@ -6,6 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class Application {
+    public const PLUGIN_NAMESPACE = 'woo-payment-gateway-for-piraeus-bank';
     private $entrypoint_path;
 
     public function __construct( $entrypoint ) {
@@ -28,7 +29,7 @@ class Application {
     }
 
     public function load_languages() {
-        load_plugin_textdomain( 'woo-payment-gateway-for-piraeus-bank', false, dirname( plugin_basename( __FILE__ ) ) . '/../languages/' );
+        load_plugin_textdomain( self::PLUGIN_NAMESPACE, false, dirname( plugin_basename( __FILE__ ) ) . '/../languages/' );
     }
 
     public function piraeusbank_message() {
@@ -84,30 +85,30 @@ class Application {
 
     public function piraeus_woocommerce_states( $states ) {
         $states['CY'] = array(
-            '04' => __( 'Ammochostos', 'woo-payment-gateway-for-piraeus-bank' ),
-            '06' => __( 'Keryneia', 'woo-payment-gateway-for-piraeus-bank' ),
-            '03' => __( 'Larnaka', 'woo-payment-gateway-for-piraeus-bank' ),
-            '01' => __( 'Lefkosia', 'woo-payment-gateway-for-piraeus-bank' ),
-            '02' => __( 'Lemesos', 'woo-payment-gateway-for-piraeus-bank' ),
-            '05' => __( 'Pafos', 'woo-payment-gateway-for-piraeus-bank' ),
+            '04' => __( 'Ammochostos', self::PLUGIN_NAMESPACE ),
+            '06' => __( 'Keryneia', self::PLUGIN_NAMESPACE ),
+            '03' => __( 'Larnaka', self::PLUGIN_NAMESPACE ),
+            '01' => __( 'Lefkosia', self::PLUGIN_NAMESPACE ),
+            '02' => __( 'Lemesos', self::PLUGIN_NAMESPACE ),
+            '05' => __( 'Pafos', self::PLUGIN_NAMESPACE ),
         );
         $states['DE'] = array(
-            'BW' => __( 'Baden-Württemberg', 'woo-payment-gateway-for-piraeus-bank' ),
-            'BY' => __( 'Bayern', 'woo-payment-gateway-for-piraeus-bank' ),
-            'BE' => __( 'Berlin', 'woo-payment-gateway-for-piraeus-bank' ),
-            'BB' => __( 'Brandenburg', 'woo-payment-gateway-for-piraeus-bank' ),
-            'HB' => __( 'Bremen', 'woo-payment-gateway-for-piraeus-bank' ),
-            'HH' => __( 'Hamburg', 'woo-payment-gateway-for-piraeus-bank' ),
-            'HE' => __( 'Hessen', 'woo-payment-gateway-for-piraeus-bank' ),
-            'MV' => __( 'Mecklenburg-Vorpommern', 'woo-payment-gateway-for-piraeus-bank' ),
-            'NI' => __( 'Niedersachsen', 'woo-payment-gateway-for-piraeus-bank' ),
-            'NW' => __( 'Nordrhein-Westfalen', 'woo-payment-gateway-for-piraeus-bank' ),
-            'RP' => __( 'Rheinland-Pfalz', 'woo-payment-gateway-for-piraeus-bank' ),
-            'SL' => __( 'Saarland', 'woo-payment-gateway-for-piraeus-bank' ),
-            'SN' => __( 'Sachsen', 'woo-payment-gateway-for-piraeus-bank' ),
-            'ST' => __( 'Sachsen-Anhalt', 'woo-payment-gateway-for-piraeus-bank' ),
-            'SH' => __( 'Schleswig-Holstein', 'woo-payment-gateway-for-piraeus-bank' ),
-            'TH' => __( 'Thüringen', 'woo-payment-gateway-for-piraeus-bank' ),
+            'BW' => __( 'Baden-Württemberg', self::PLUGIN_NAMESPACE ),
+            'BY' => __( 'Bayern', self::PLUGIN_NAMESPACE ),
+            'BE' => __( 'Berlin', self::PLUGIN_NAMESPACE ),
+            'BB' => __( 'Brandenburg', self::PLUGIN_NAMESPACE ),
+            'HB' => __( 'Bremen', self::PLUGIN_NAMESPACE ),
+            'HH' => __( 'Hamburg', self::PLUGIN_NAMESPACE ),
+            'HE' => __( 'Hessen', self::PLUGIN_NAMESPACE ),
+            'MV' => __( 'Mecklenburg-Vorpommern', self::PLUGIN_NAMESPACE ),
+            'NI' => __( 'Niedersachsen', self::PLUGIN_NAMESPACE ),
+            'NW' => __( 'Nordrhein-Westfalen', self::PLUGIN_NAMESPACE ),
+            'RP' => __( 'Rheinland-Pfalz', self::PLUGIN_NAMESPACE ),
+            'SL' => __( 'Saarland', self::PLUGIN_NAMESPACE ),
+            'SN' => __( 'Sachsen', self::PLUGIN_NAMESPACE ),
+            'ST' => __( 'Sachsen-Anhalt', self::PLUGIN_NAMESPACE ),
+            'SH' => __( 'Schleswig-Holstein', self::PLUGIN_NAMESPACE ),
+            'TH' => __( 'Thüringen', self::PLUGIN_NAMESPACE ),
         );
         // __('Piraeus Bank Gateway', 'woo-payment-gateway-for-piraeus-bank')
         return $states;

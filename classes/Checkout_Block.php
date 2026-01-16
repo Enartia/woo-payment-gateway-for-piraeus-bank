@@ -6,7 +6,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class Checkout_Block {
-    protected const PLUGIN_NAMESPACE = 'woo-payment-gateway-for-piraeus-bank';
     private $entrypoint_path;
 
     public function __construct( $entrypoint ) {
@@ -25,19 +24,45 @@ class Checkout_Block {
 
         $pb_cardholder_name = $gateway->get_option( 'pb_cardholder_name' );
 
-        if ( $pb_cardholder_name !== 'yes' ) {
-            return;
-        }
         if ( function_exists( 'woocommerce_register_additional_checkout_field' ) ) {
+            if ( $pb_cardholder_name === 'yes' ) {
+                woocommerce_register_additional_checkout_field(
+                    [
+                        'id'         => Application::PLUGIN_NAMESPACE . '/card-holder',
+                        'label'      => __( 'Cardholder Name', Application::PLUGIN_NAMESPACE ),
+                        'location'   => 'order',
+                        'required'   => false,
+                        'show_in_rest' => [
+                            'schema' => [
+                                'type' => 'string',
+                            ],
+                        ],
+                        // Add an attribute to this field so frontend JS can find it and show/hide it
+                        'attributes' => [
+                            'data-payment-method' => 'piraeusbank_gateway',
+                            'data-field-id' => 'piraeusbank-card-holder',
+                        ],
+                    ],
+                );
+            }
+
             woocommerce_register_additional_checkout_field(
                 [
-                    'id'         => self::PLUGIN_NAMESPACE . '/card-holder',
-                    'label'      => __( 'Cardholder Name', self::PLUGIN_NAMESPACE ),
+                    'id'         => Application::PLUGIN_NAMESPACE . '/installments',
+                    'label'      => __( 'Installments', Application::PLUGIN_NAMESPACE ),
                     'location'   => 'order',
+                    'type'       => 'select',
                     'required'   => false,
+                    // Use calculated-by-cart/order total options so frontend matches the gateway limitations
+                    'options'    => $this->get_installments_options_up_to( $this->calculate_max_installments() ),
+                    'show_in_rest' => [
+                        'schema' => [
+                            'type' => 'string',
+                        ],
+                    ],
                     'attributes' => [
-                        'autocomplete' => 'card-holder',
-                        'data-custom'  => 'custom data',
+                        'data-payment-method' => 'piraeusbank_gateway',
+                        'data-field-id' => 'piraeusbank-installments',
                     ],
                 ],
             );
@@ -61,8 +86,6 @@ class Checkout_Block {
             return;
         }
 
-        // require_once plugin_dir_path( __FILE__ ) . '/WC_Piraeusbank_Gateway_Checkout_Block.php';
-
         add_action(
             'woocommerce_blocks_payment_method_type_registration',
             function ( \Automattic\WooCommerce\Blocks\Payments\PaymentMethodRegistry $payment_method_registry ) {
@@ -72,11 +95,62 @@ class Checkout_Block {
         );
     }
 
+    private function get_installments_options_up_to( $max_installments ) {
+        $options = [];
+        for ( $i = 1; $i <= $max_installments; $i++ ) {
+            if( $i === 1 ) {
+                $options[] = [ 'value' => $i, 'label' => __( 'Without installments', Application::PLUGIN_NAMESPACE ) ];
+            } else {
+                $options[] = [ 'value' => $i, 'label' => (string) $i ];
+            }
+        }
+        return $options;
+    }
+
+    private function calculate_max_installments() {
+        $gateway = new WC_Piraeusbank_Gateway();
+        $pb_installments = (int) $gateway->get_option( 'pb_installments' );
+        $pb_installments_variation = $gateway->get_option( 'pb_installments_variation' ) ?? '';
+
+        $max_installments = $pb_installments ?? 1;
+
+        if ( ! empty( $pb_installments_variation ) ) {
+            $max_installments = 1;
+            $installments_split = explode( ',', $pb_installments_variation );
+            foreach ($installments_split as $value) {
+                $installment = explode( ':', $value );
+                if ( ( is_array( $installment ) && count( $installment ) !== 2 ) ||
+                    ( ! is_numeric( $installment[0] ) || ! is_numeric( $installment[1] ) ) ) {
+                    continue;
+                }
+
+                $max_installments = max( $max_installments, $installment[1] );
+            }
+        }
+
+        return $max_installments;
+    }
+
     public function set_additional_field_value( $key, $value, $group, $wc_object ) {
-        if ( self::PLUGIN_NAMESPACE . '/card-holder' !== $key ) {
+        // determine which field we are handling
+        if ( Application::PLUGIN_NAMESPACE . '/card-holder' === $key ) {
+            $gateway = new WC_Piraeusbank_Gateway();
+            $pb_cardholder_name = $gateway->get_option( 'pb_cardholder_name' );
+            if ( $pb_cardholder_name !== 'yes' ) {
+                return;
+            }
+            update_post_meta( $wc_object->get_id(), 'cardholder_name', sanitize_text_field( $value ) );
             return;
         }
 
-        update_post_meta( $wc_object->get_id(), 'cardholder_name', $value );
+        if ( Application::PLUGIN_NAMESPACE . '/installments' === $key ) {
+            // The classic plugin uses _doseis as installments meta key
+            $v = absint( $value );
+            if ( $v < 1 ) {
+                $v = 1;
+            }
+            update_post_meta( $wc_object->get_id(), '_doseis', $v );
+            return;
+        }
     }
 }

@@ -30,7 +30,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @noinspection PhpUnusedParameterInspection
  */
 class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
-    protected const PLUGIN_NAMESPACE = 'woo-payment-gateway-for-piraeus-bank';
 
     protected int $pb_PayMerchantId;
     protected int $pb_AcquirerId;
@@ -57,7 +56,7 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
         $this->id                 = 'piraeusbank_gateway';
         $this->has_fields         = true;
         $this->notify_url         = WC()->api_request_url( 'WC_Piraeusbank_Gateway' );
-        $this->method_description = __( 'Piraeus bank Payment Gateway allows you to accept payment through various channels such as Maestro, Mastercard, AMex cards, Diners  and Visa cards On your Woocommerce Powered Site.', self::PLUGIN_NAMESPACE );
+        $this->method_description = __( 'Piraeus bank Payment Gateway allows you to accept payment through various channels such as Maestro, Mastercard, AMex cards, Diners  and Visa cards On your Woocommerce Powered Site.', Application::PLUGIN_NAMESPACE );
         $this->redirect_page_id   = $this->get_option( 'redirect_page_id' );
         $this->method_title       = 'Piraeus bank Gateway';
 
@@ -147,8 +146,8 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
     public function custom_override_checkout_fields( $billing_fields ) {
         $billing_fields['cardholder_name'] = [
             'type'        => 'text',
-            'label'       => __( 'Cardholder Name', self::PLUGIN_NAMESPACE ),
-            'placeholder' => __( 'Card holder name is optional by Piraeus Bank for validation', self::PLUGIN_NAMESPACE ),
+            'label'       => __( 'Cardholder Name', Application::PLUGIN_NAMESPACE ),
+            'placeholder' => __( 'Card holder name is optional by Piraeus Bank for validation', Application::PLUGIN_NAMESPACE ),
             'required'    => false,
             'class'       => [ 'form-row-wide' ],
             'clear'       => true,
@@ -172,16 +171,16 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
 
         curl_close( $ch );
 
-        echo '<h3>' . __( 'Piraeus Bank Gateway', self::PLUGIN_NAMESPACE ) . '</h3>';
-        echo '<p>' . __( 'Piraeus Bank Gateway allows you to accept payment through various channels such as Maestro, Mastercard, AMex cards, Diners  and Visa cards.', self::PLUGIN_NAMESPACE ) . '</p>';
+        echo '<h3>' . __( 'Piraeus Bank Gateway', Application::PLUGIN_NAMESPACE ) . '</h3>';
+        echo '<p>' . __( 'Piraeus Bank Gateway allows you to accept payment through various channels such as Maestro, Mastercard, AMex cards, Diners  and Visa cards.', Application::PLUGIN_NAMESPACE ) . '</p>';
         $base_url = $_SERVER['HTTP_HOST'] ?: $_SERVER['SERVER_NAME'];
         // $host = (is_ssl() === true ? 'https://' : 'http://') . $base_url . '/';
         $host = get_bloginfo( 'url' ) . '/';
 
 
         echo '<div style="border: 1px dashed #000; display: inline-block; padding: 10px;">';
-        echo '<h4>' . __( 'Technical data to be submitted to Piraeus Bank', self::PLUGIN_NAMESPACE ) . '</h4>';
-        echo '<p>' . __( 'The data to be submitted to Piraeus Bank(<a href="mailto:epayments@piraeusbank.gr">epayments@piraeusbank.gr</a>) in order to provide the necessary technical info (test/live account) for transactions are as follows', self::PLUGIN_NAMESPACE ) . ':</p>';
+        echo '<h4>' . __( 'Technical data to be submitted to Piraeus Bank', Application::PLUGIN_NAMESPACE ) . '</h4>';
+        echo '<p>' . __( 'The data to be submitted to Piraeus Bank(<a href="mailto:epayments@piraeusbank.gr">epayments@piraeusbank.gr</a>) in order to provide the necessary technical info (test/live account) for transactions are as follows', Application::PLUGIN_NAMESPACE ) . ':</p>';
         echo '<ul>';
         echo '<li><strong>Website URL:</strong> ' . $host . '</li>';
         echo '<li><strong>Referrer url:</strong> ' . $host . 'checkout/' . ' </li>';
@@ -203,13 +202,13 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
 
     public function soap_error_notice() {
         echo '<div class="error notice">';
-        echo '<p>' . __( '<strong>SOAP have to be enabled in your Server/Hosting</strong>, it is required for this plugin to work properly!', self::PLUGIN_NAMESPACE ) . '</p>';
+        echo '<p>' . __( '<strong>SOAP have to be enabled in your Server/Hosting</strong>, it is required for this plugin to work properly!', Application::PLUGIN_NAMESPACE ) . '</p>';
         echo '</div>';
     }
 
     public function authorize_warning_notice() {
         echo '<div class="notice-warning notice">';
-        echo '<p>' . __( '<strong>Important Notice:</strong> Piraeus Bank has announced that it will gradually abolish the Preauthorized Payment Service for all merchants, beginning from the ones obtained MIDs from 29/1/2019 onwards.<br /> You are highly recommended to disable the preAuthorized Payment Service as soon as possible.', self::PLUGIN_NAMESPACE ) . '</p>';
+        echo '<p>' . __( '<strong>Important Notice:</strong> Piraeus Bank has announced that it will gradually abolish the Preauthorized Payment Service for all merchants, beginning from the ones obtained MIDs from 29/1/2019 onwards.<br /> You are highly recommended to disable the preAuthorized Payment Service as soon as possible.', Application::PLUGIN_NAMESPACE ) . '</p>';
         echo '</div>';
     }
 
@@ -219,140 +218,140 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
     public function init_form_fields() {
         $this->form_fields = [
             'enabled'                   => [
-                'title'       => __( 'Enable/Disable', self::PLUGIN_NAMESPACE ),
+                'title'       => __( 'Enable/Disable', Application::PLUGIN_NAMESPACE ),
                 'type'        => 'checkbox',
-                'label'       => __( 'Enable Piraeus Bank Gateway', self::PLUGIN_NAMESPACE ),
-                'description' => __( 'Enable or disable the gateway.', self::PLUGIN_NAMESPACE ),
+                'label'       => __( 'Enable Piraeus Bank Gateway', Application::PLUGIN_NAMESPACE ),
+                'description' => __( 'Enable or disable the gateway.', Application::PLUGIN_NAMESPACE ),
                 'desc_tip'    => true,
                 'default'     => 'yes',
             ],
             'title'                     => [
-                'title'       => __( 'Title', self::PLUGIN_NAMESPACE ),
+                'title'       => __( 'Title', Application::PLUGIN_NAMESPACE ),
                 'type'        => 'text',
-                'description' => __( 'This controls the title which the user sees during checkout.', self::PLUGIN_NAMESPACE ),
+                'description' => __( 'This controls the title which the user sees during checkout.', Application::PLUGIN_NAMESPACE ),
                 'desc_tip'    => false,
-                'default'     => __( 'Piraeus Bank Gateway', self::PLUGIN_NAMESPACE ),
+                'default'     => __( 'Piraeus Bank Gateway', Application::PLUGIN_NAMESPACE ),
             ],
             'description'               => [
-                'title'       => __( 'Description', self::PLUGIN_NAMESPACE ),
+                'title'       => __( 'Description', Application::PLUGIN_NAMESPACE ),
                 'type'        => 'textarea',
-                'description' => __( 'This controls the description which the user sees during checkout.', self::PLUGIN_NAMESPACE ),
-                'default'     => __( 'Pay Via Piraeus Bank - Pay by Card or IRIS.', self::PLUGIN_NAMESPACE ),
+                'description' => __( 'This controls the description which the user sees during checkout.', Application::PLUGIN_NAMESPACE ),
+                'default'     => __( 'Pay Via Piraeus Bank - Pay by Card or IRIS.', Application::PLUGIN_NAMESPACE ),
             ],
             'pb_render_logo'            => [
-                'title'       => __( 'Display the logo of Piraeus Bank', self::PLUGIN_NAMESPACE ),
+                'title'       => __( 'Display the logo of Piraeus Bank', Application::PLUGIN_NAMESPACE ),
                 'type'        => 'checkbox',
-                'description' => __( 'Enable to display the logo of Piraeus Bank next to the title which the user sees during checkout.', self::PLUGIN_NAMESPACE ),
+                'description' => __( 'Enable to display the logo of Piraeus Bank next to the title which the user sees during checkout.', Application::PLUGIN_NAMESPACE ),
                 'default'     => 'yes',
             ],
             'pb_PayMerchantId'          => [
-                'title'       => __( 'Piraeus Bank Merchant ID', self::PLUGIN_NAMESPACE ),
+                'title'       => __( 'Piraeus Bank Merchant ID', Application::PLUGIN_NAMESPACE ),
                 'type'        => 'text',
-                'description' => __( 'Enter Your Piraeus Bank Merchant ID', self::PLUGIN_NAMESPACE ),
+                'description' => __( 'Enter Your Piraeus Bank Merchant ID', Application::PLUGIN_NAMESPACE ),
                 'default'     => '',
                 'desc_tip'    => true,
             ],
             'pb_AcquirerId'             => [
-                'title'       => __( 'Piraeus Bank Acquirer ID', self::PLUGIN_NAMESPACE ),
+                'title'       => __( 'Piraeus Bank Acquirer ID', Application::PLUGIN_NAMESPACE ),
                 'type'        => 'text',
-                'description' => __( 'Enter Your Piraeus Bank Acquirer ID', self::PLUGIN_NAMESPACE ),
+                'description' => __( 'Enter Your Piraeus Bank Acquirer ID', Application::PLUGIN_NAMESPACE ),
                 'default'     => '',
                 'desc_tip'    => true,
             ],
             'pb_PosId'                  => [
-                'title'       => __( 'Piraeus Bank POS ID', self::PLUGIN_NAMESPACE ),
+                'title'       => __( 'Piraeus Bank POS ID', Application::PLUGIN_NAMESPACE ),
                 'type'        => 'text',
-                'description' => __( 'Enter your Piraeus Bank POS ID', self::PLUGIN_NAMESPACE ),
+                'description' => __( 'Enter your Piraeus Bank POS ID', Application::PLUGIN_NAMESPACE ),
                 'default'     => '',
                 'desc_tip'    => true,
             ],
             'pb_Username'               => [
-                'title'       => __( 'Piraeus Bank Username', self::PLUGIN_NAMESPACE ),
+                'title'       => __( 'Piraeus Bank Username', Application::PLUGIN_NAMESPACE ),
                 'type'        => 'text',
-                'description' => __( 'Enter your Piraeus Bank Username', self::PLUGIN_NAMESPACE ),
+                'description' => __( 'Enter your Piraeus Bank Username', Application::PLUGIN_NAMESPACE ),
                 'default'     => '',
                 'desc_tip'    => true,
             ],
             'pb_Password'               => [
-                'title'       => __( 'Piraeus Bank Password', self::PLUGIN_NAMESPACE ),
+                'title'       => __( 'Piraeus Bank Password', Application::PLUGIN_NAMESPACE ),
                 'type'        => 'password',
-                'description' => __( 'Enter your Piraeus Bank Password', self::PLUGIN_NAMESPACE ),
+                'description' => __( 'Enter your Piraeus Bank Password', Application::PLUGIN_NAMESPACE ),
                 'default'     => '',
                 'desc_tip'    => true,
             ],
             'pb_ProxyHost'              => [
-                'title'       => __( 'HTTP Proxy Hostname', self::PLUGIN_NAMESPACE ),
+                'title'       => __( 'HTTP Proxy Hostname', Application::PLUGIN_NAMESPACE ),
                 'type'        => 'text',
-                'description' => __( 'Used when your server is not behind a static IP. Leave blank for normal HTTP connection.', self::PLUGIN_NAMESPACE ),
+                'description' => __( 'Used when your server is not behind a static IP. Leave blank for normal HTTP connection.', Application::PLUGIN_NAMESPACE ),
                 'desc_tip'    => false,
                 'default'     => '',
             ],
             'pb_ProxyPort'              => [
-                'title'       => __( 'HTTP Proxy Port', self::PLUGIN_NAMESPACE ),
+                'title'       => __( 'HTTP Proxy Port', Application::PLUGIN_NAMESPACE ),
                 'type'        => 'text',
-                'description' => __( 'Used with Proxy Host.', self::PLUGIN_NAMESPACE ),
+                'description' => __( 'Used with Proxy Host.', Application::PLUGIN_NAMESPACE ),
                 'desc_tip'    => false,
                 'default'     => '',
             ],
             'pb_ProxyUsername'          => [
-                'title'       => __( 'HTTP Proxy Login Username', self::PLUGIN_NAMESPACE ),
+                'title'       => __( 'HTTP Proxy Login Username', Application::PLUGIN_NAMESPACE ),
                 'type'        => 'text',
-                'description' => __( 'Used with Proxy Host. Leave blank for anonymous connection.', self::PLUGIN_NAMESPACE ),
+                'description' => __( 'Used with Proxy Host. Leave blank for anonymous connection.', Application::PLUGIN_NAMESPACE ),
                 'desc_tip'    => false,
                 'default'     => '',
             ],
             'pb_ProxyPassword'          => [
-                'title'       => __( 'HTTP Proxy Login Password', self::PLUGIN_NAMESPACE ),
+                'title'       => __( 'HTTP Proxy Login Password', Application::PLUGIN_NAMESPACE ),
                 'type'        => 'password',
-                'description' => __( ' Used with Proxy Host. Leave blank for anonymous connection.', self::PLUGIN_NAMESPACE ),
+                'description' => __( ' Used with Proxy Host. Leave blank for anonymous connection.', Application::PLUGIN_NAMESPACE ),
                 'desc_tip'    => false,
                 'default'     => '',
             ],
             'pb_authorize'              => [
-                'title'       => __( 'Pre-Authorize', self::PLUGIN_NAMESPACE ),
+                'title'       => __( 'Pre-Authorize', Application::PLUGIN_NAMESPACE ),
                 'type'        => 'checkbox',
-                'label'       => __( 'Enable to capture preauthorized payments', self::PLUGIN_NAMESPACE ),
+                'label'       => __( 'Enable to capture preauthorized payments', Application::PLUGIN_NAMESPACE ),
                 'default'     => 'no',
-                'description' => __( '<strong>Important Notice:</strong> Piraeus Bank has announced that it will gradually abolish the Preauthorized Payment Service for all merchants, beginning from the ones obtained MIDs from 29/1/2019 onwards.<br /> Default payment method is Purchase, enable for Pre-Authorized payments. You will then need to accept them from Piraeus Bank AdminTool', self::PLUGIN_NAMESPACE ),
+                'description' => __( '<strong>Important Notice:</strong> Piraeus Bank has announced that it will gradually abolish the Preauthorized Payment Service for all merchants, beginning from the ones obtained MIDs from 29/1/2019 onwards.<br /> Default payment method is Purchase, enable for Pre-Authorized payments. You will then need to accept them from Piraeus Bank AdminTool', Application::PLUGIN_NAMESPACE ),
             ],
             'redirect_page_id'          => [
-                'title'       => __( 'Return page URL <br />(Successful or Failed Transactions)', self::PLUGIN_NAMESPACE ),
+                'title'       => __( 'Return page URL <br />(Successful or Failed Transactions)', Application::PLUGIN_NAMESPACE ),
                 'type'        => 'select',
                 'options'     => $this->pb_get_pages( 'Select Page' ),
-                'description' => __( 'We recommend you to select the default “Thank You Page”, in order to automatically serve both successful and failed transactions, with the latter also offering the option to try the payment again.<br /> If you select a different page, you will have to handle failed payments yourself by adding custom code.', self::PLUGIN_NAMESPACE ),
+                'description' => __( 'We recommend you to select the default “Thank You Page”, in order to automatically serve both successful and failed transactions, with the latter also offering the option to try the payment again.<br /> If you select a different page, you will have to handle failed payments yourself by adding custom code.', Application::PLUGIN_NAMESPACE ),
                 'default'     => -1,
             ],
             'pb_installments'           => [
-                'title'       => __( 'Maximum number of installments regardless of the total order amount', self::PLUGIN_NAMESPACE ),
+                'title'       => __( 'Maximum number of installments regardless of the total order amount', Application::PLUGIN_NAMESPACE ),
                 'type'        => 'select',
                 'options'     => $this->pb_get_installments( 'Select Installments' ),
-                'description' => __( '1 to 24 Installments,1 for one time payment. You must contact Piraeus Bank first<br /> If you have filled the "Max Number of installments depending on the total order amount", the value of this field will be ignored.', self::PLUGIN_NAMESPACE ),
+                'description' => __( '1 to 24 Installments,1 for one time payment. You must contact Piraeus Bank first<br /> If you have filled the "Max Number of installments depending on the total order amount", the value of this field will be ignored.', Application::PLUGIN_NAMESPACE ),
             ],
             'pb_installments_variation' => [
-                'title'       => __( 'Maximum number of installments depending on the total order amount', self::PLUGIN_NAMESPACE ),
+                'title'       => __( 'Maximum number of installments depending on the total order amount', Application::PLUGIN_NAMESPACE ),
                 'type'        => 'text',
-                'description' => __( 'Example 80:2, 160:4, 300:8</br> total order greater or equal to 80 -> allow 2 installments, total order greater or equal to 160 -> allow 4 installments, total order greater or equal to 300 -> allow 8 installments</br> Leave the field blank if you do not want to limit the number of installments depending on the amount of the order.', self::PLUGIN_NAMESPACE ),
+                'description' => __( 'Example 80:2, 160:4, 300:8</br> total order greater or equal to 80 -> allow 2 installments, total order greater or equal to 160 -> allow 4 installments, total order greater or equal to 300 -> allow 8 installments</br> Leave the field blank if you do not want to limit the number of installments depending on the amount of the order.', Application::PLUGIN_NAMESPACE ),
             ],
             'pb_cardholder_name'        => [
-                'title'       => __( 'Enable Cardholder Name Field', self::PLUGIN_NAMESPACE ),
+                'title'       => __( 'Enable Cardholder Name Field', Application::PLUGIN_NAMESPACE ),
                 'type'        => 'checkbox',
-                'label'       => __( 'Enabling this field allows customers to insert a cardholder name', self::PLUGIN_NAMESPACE ),
+                'label'       => __( 'Enabling this field allows customers to insert a cardholder name', Application::PLUGIN_NAMESPACE ),
                 'default'     => 'yes',
-                'description' => __( 'According to Piraeus bank’s technical requirements related to 3D secure and SCA, the cardholder’s name must be sent before the customer is redirected to the bank’s payment environment. If you choose not to show this field, we will automatically send the full name inserted for the order, with the risk of having the bank refusing the transaction due to the validity of this field.', self::PLUGIN_NAMESPACE ),
+                'description' => __( 'According to Piraeus bank’s technical requirements related to 3D secure and SCA, the cardholder’s name must be sent before the customer is redirected to the bank’s payment environment. If you choose not to show this field, we will automatically send the full name inserted for the order, with the risk of having the bank refusing the transaction due to the validity of this field.', Application::PLUGIN_NAMESPACE ),
             ],
             'pb_enable_log'             => [
-                'title'       => __( 'Enable Debug mode', self::PLUGIN_NAMESPACE ),
+                'title'       => __( 'Enable Debug mode', Application::PLUGIN_NAMESPACE ),
                 'type'        => 'checkbox',
-                'label'       => __( 'Enabling this will log certain information', self::PLUGIN_NAMESPACE ),
+                'label'       => __( 'Enabling this will log certain information', Application::PLUGIN_NAMESPACE ),
                 'default'     => 'no',
-                'description' => __( 'Enabling this (and the debug mode from your wp-config file) will log information, e.g. bank responses, which will help in debugging issues.', self::PLUGIN_NAMESPACE ),
+                'description' => __( 'Enabling this (and the debug mode from your wp-config file) will log information, e.g. bank responses, which will help in debugging issues.', Application::PLUGIN_NAMESPACE ),
             ],
             'pb_order_note'             => [
-                'title'       => __( 'Enable 2nd “payment received” email', self::PLUGIN_NAMESPACE ),
+                'title'       => __( 'Enable 2nd “payment received” email', Application::PLUGIN_NAMESPACE ),
                 'type'        => 'checkbox',
-                'label'       => __( 'Enable sending Customer order note with transaction details', self::PLUGIN_NAMESPACE ),
+                'label'       => __( 'Enable sending Customer order note with transaction details', Application::PLUGIN_NAMESPACE ),
                 'default'     => 'no',
-                'description' => __( 'Enabling this will send an email with the support reference id and transaction id to the customer, after the transaction has been completed (either on success or failure)', self::PLUGIN_NAMESPACE ),
+                'description' => __( 'Enabling this will send an email with the support reference id and transaction id to the customer, after the transaction has been completed (either on success or failure)', Application::PLUGIN_NAMESPACE ),
             ],
 
         ];
@@ -384,7 +383,7 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
             // add to page list array array
             $page_list[ $page->ID ] = $prefix . $page->post_title;
         }
-        $page_list[ -1 ] = __( 'Thank you page', self::PLUGIN_NAMESPACE );
+        $page_list[ -1 ] = __( 'Thank you page', Application::PLUGIN_NAMESPACE );
 
         return $page_list;
     }
@@ -445,12 +444,12 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
         }
 
         if ( $max_installments > 1 ) {
-            $doseis_field = '<p class="form-row ">
-                    <label for="' . esc_attr( $this->id ) . '-card-doseis">' . __( 'Choose Installments', 'woo-payment-gateway-for-piraeus-bank' ) . ' <span class="required">*</span></label>
+                $doseis_field = '<p class="form-row ">
+                    <label for="' . esc_attr( $this->id ) . '-card-doseis">' . __( 'Choose Installments', Application::PLUGIN_NAMESPACE ) . ' <span class="required">*</span></label>
                                 <select id="' . esc_attr( $this->id ) . '-card-doseis" name="' . esc_attr( $this->id ) . '-card-doseis" class="input-select wc-credit-card-form-card-doseis">
                                 ';
             for ( $i = 1; $i <= $max_installments; $i++ ) {
-                $doseis_field  .= '<option value="' . $i . '">' . ( $i === 1 ? __( 'Without installments', 'woo-payment-gateway-for-piraeus-bank' ) : $i ) . '</option>';
+                $doseis_field  .= '<option value="' . $i . '">' . ( $i === 1 ? __( 'Without installments', Application::PLUGIN_NAMESPACE ) : $i ) . '</option>';
             }
             $doseis_field  .= '</select>
                         </p>'; // <img width="100%" height="100%" style="max-height:100px!important" src="'. plugins_url('img/alpha_cards.png', __FILE__) .'" >
@@ -594,7 +593,7 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
 
                 wc_enqueue_js( '
                 $.blockUI({
-                        message: "' . esc_js( __( 'Thank you for your order. We are now redirecting you to Piraeus Bank to make payment.', self::PLUGIN_NAMESPACE ) ) . '",
+                        message: "' . esc_js( __( 'Thank you for your order. We are now redirecting you to Piraeus Bank to make payment.', Application::PLUGIN_NAMESPACE ) ) . '",
                         baseZ: 99999,
                         overlayCSS:
                         {
@@ -627,7 +626,7 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
                         <input type="hidden" id="MerchantReference" name="MerchantReference"  value="' . esc_attr( $order_id ) . '"/>
                     <!-- Button Fallback -->
                     <div class="payment_buttons">
-                        <input type="submit" class="button alt" id="submit_pb_payment_form" value="' . __( 'Pay via Pireaus Bank', self::PLUGIN_NAMESPACE ) . '" /> <a class="button cancel" href="' . esc_url( $order->get_cancel_order_url() ) . '">' . __( 'Cancel order &amp; restore cart', self::PLUGIN_NAMESPACE ) . '</a>
+                        <input type="submit" class="button alt" id="submit_pb_payment_form" value="' . __( 'Pay via Pireaus Bank', Application::PLUGIN_NAMESPACE ) . '" /> <a class="button cancel" href="' . esc_url( $order->get_cancel_order_url() ) . '">' . __( 'Cancel order &amp; restore cart', Application::PLUGIN_NAMESPACE ) . '</a>
 
                     </div>
                     <script type="text/javascript">
@@ -636,7 +635,7 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
                 </form>';
             }
 
-            echo __( 'An error occured, please contact the Administrator. ', self::PLUGIN_NAMESPACE );
+            echo __( 'An error occured, please contact the Administrator. ', Application::PLUGIN_NAMESPACE );
             echo ( 'Result code is ' . sanitize_text_field( $oResult->IssueNewTicketResult->ResultCode ) );
             echo ( '. : ' . sanitize_text_field( $oResult->IssueNewTicketResult->ResultDescription ) );
             $order->add_order_note( __( 'Error' . sanitize_text_field( $oResult->IssueNewTicketResult->ResultCode ) . ':' . sanitize_text_field( $oResult->IssueNewTicketResult->ResultDescription ), '' ) );
@@ -676,7 +675,7 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
      * @return void
      */
     public function receipt_page( $order ) {
-        echo '<p>' . __( 'Thank you - your order is now pending payment. You should be automatically redirected to Piraeus Paycenter to make payment.', self::PLUGIN_NAMESPACE ) . '</p>';
+        echo '<p>' . __( 'Thank you - your order is now pending payment. You should be automatically redirected to Piraeus Paycenter to make payment.', Application::PLUGIN_NAMESPACE ) . '</p>';
         echo $this->generate_piraeusbank_form( $order );
     }
 
@@ -708,11 +707,11 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
 
 
             if ( $ResultCode !== 0 ) {
-                $message      = __( 'A technical problem occured. <br />The transaction wasn\'t successful, payment wasn\'t received.', self::PLUGIN_NAMESPACE );
+                $message      = __( 'A technical problem occured. <br />The transaction wasn\'t successful, payment wasn\'t received.', Application::PLUGIN_NAMESPACE );
                 $message_type = 'error';
                 $this->set_message( $order, $message, $message_type );
 
-                wc_add_notice( __( 'Payment error:', self::PLUGIN_NAMESPACE ) . $message, $message_type );
+                wc_add_notice( __( 'Payment error:', Application::PLUGIN_NAMESPACE ) . $message, $message_type );
                 $order->update_status( 'failed' );
 
                 $this->safe_log( '---- Piraeus Error -----', $message . ' ResultCode !== 0' );
@@ -775,7 +774,7 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
             }
 
             if ( $hasHashKeyNotMatched ) {
-                $message      = __( 'Thank you for shopping with us. <br />However, the transaction wasn\'t successful, payment wasn\'t received.', self::PLUGIN_NAMESPACE );
+                $message      = __( 'Thank you for shopping with us. <br />However, the transaction wasn\'t successful, payment wasn\'t received.', Application::PLUGIN_NAMESPACE );
                 $message_type = 'error';
                 $pb_message   = [ 'message' => $message, 'message_type' => $message_type ];
 
@@ -804,28 +803,28 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
                 $order->payment_complete( $TransactionId );
 
 				//Add admin order note
-				$order->add_order_note( __( 'Payment Via Peiraeus Bank<br />Transaction ID: ', self::PLUGIN_NAMESPACE ) . $TransactionId . __( '<br />Support Reference ID: ', self::PLUGIN_NAMESPACE ) . $SupportReferenceID );
+                $order->add_order_note( __( 'Payment Via Peiraeus Bank<br />Transaction ID: ', Application::PLUGIN_NAMESPACE ) . $TransactionId . __( '<br />Support Reference ID: ', Application::PLUGIN_NAMESPACE ) . $SupportReferenceID );
 
 				// Mark IRIS payments explicitly when detected
 				if ( !empty( $PaymentMethod ) && strtoupper( $PaymentMethod ) === 'IRIS' ) {
-					$order->add_order_note( __( 'Payment method detected: IRIS (Piraeus Bank).', self::PLUGIN_NAMESPACE ) );
+                    $order->add_order_note( __( 'Payment method detected: IRIS (Piraeus Bank).', Application::PLUGIN_NAMESPACE ) );
 				} elseif ( !empty( $CardType ) && (string) $CardType === '15' ) {
 					// CardType '15' also indicates IRIS according to epay spec
-					$order->add_order_note( __( 'CardType indicates IRIS payment (CardType:15).', self::PLUGIN_NAMESPACE ) );
+                    $order->add_order_note( __( 'CardType indicates IRIS payment (CardType:15).', Application::PLUGIN_NAMESPACE ) );
 				}
 
                 $message = '';
                 if ( $order->get_status() === 'processing' ) {
-                    $message = __( 'Thank you for shopping with us.<br />Your transaction was successful, payment was received.<br />Your order is currently being processed.', self::PLUGIN_NAMESPACE );
+                    $message = __( 'Thank you for shopping with us.<br />Your transaction was successful, payment was received.<br />Your order is currently being processed.', Application::PLUGIN_NAMESPACE );
 
                     if ( $this->pb_order_note === 'yes' ) {
-                        $order->add_order_note( __( 'Payment Received.<br />Your order is currently being processed.<br />We will be shipping your order to you soon.<br />Peiraeus Bank ID: ', self::PLUGIN_NAMESPACE ) . $TransactionId . __( '<br />Support Reference ID: ', self::PLUGIN_NAMESPACE ) . $SupportReferenceID, 1 );
+                        $order->add_order_note( __( 'Payment Received.<br />Your order is currently being processed.<br />We will be shipping your order to you soon.<br />Peiraeus Bank ID: ', Application::PLUGIN_NAMESPACE ) . $TransactionId . __( '<br />Support Reference ID: ', Application::PLUGIN_NAMESPACE ) . $SupportReferenceID, 1 );
                     }
                 } else if ( $order->get_status() === 'completed' ) {
-                    $message = __( 'Thank you for shopping with us.<br />Your transaction was successful, payment was received.<br />Your order is now complete.', self::PLUGIN_NAMESPACE );
+                    $message = __( 'Thank you for shopping with us.<br />Your transaction was successful, payment was received.<br />Your order is now complete.', Application::PLUGIN_NAMESPACE );
 
                     if ( $this->pb_order_note === 'yes' ) {
-                        $order->add_order_note( __( 'Payment Received.<br />Your order is now complete.<br />Peiraeus Transaction ID: ', self::PLUGIN_NAMESPACE ) . $TransactionId . __( '<br />Support Reference ID: ', self::PLUGIN_NAMESPACE ) . $SupportReferenceID, 1 );
+                        $order->add_order_note( __( 'Payment Received.<br />Your order is now complete.<br />Peiraeus Transaction ID: ', Application::PLUGIN_NAMESPACE ) . $TransactionId . __( '<br />Support Reference ID: ', Application::PLUGIN_NAMESPACE ) . $SupportReferenceID, 1 );
                     }
                 }
 
@@ -852,7 +851,7 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
 				}
 			}
 			else if ( $ResponseCode == 11 ) {
-				$message      = __( 'Thank you for shopping with us.<br />Your transaction was previously received.<br />', self::PLUGIN_NAMESPACE );
+				$message      = __( 'Thank you for shopping with us.<br />Your transaction was previously received.<br />', Application::PLUGIN_NAMESPACE );
 				$message_type = 'success';
 
                 $pb_message = $this->set_message( $order, $message, $message_type );
@@ -867,7 +866,7 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
                     'message'      => $message,
                 ] );
             } else { //Failed Response codes
-                $message      = __( 'Thank you for shopping with us. <br />However, the transaction wasn\'t successful, payment wasn\'t received.', self::PLUGIN_NAMESPACE );
+                $message      = __( 'Thank you for shopping with us. <br />However, the transaction wasn\'t successful, payment wasn\'t received.', Application::PLUGIN_NAMESPACE );
                 $message_type = 'error';
 
                 $pb_message = $this->set_message( $order, $message, $message_type );
@@ -900,7 +899,7 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
 			}
 
             $order        = new \WC_Order( $order_id );
-            $message      = __( 'Thank you for shopping with us. <br />However, the transaction wasn\'t successful, payment wasn\'t received.', self::PLUGIN_NAMESPACE );
+            $message      = __( 'Thank you for shopping with us. <br />However, the transaction wasn\'t successful, payment wasn\'t received.', Application::PLUGIN_NAMESPACE );
             $message_type = 'error';
 
             $transaction_id = absint( $_REQUEST['SupportReferenceID'] );
