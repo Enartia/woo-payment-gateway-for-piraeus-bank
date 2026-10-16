@@ -1,14 +1,14 @@
 === Piraeus Bank WooCommerce Payment Gateway ===
-Contributors: enartia,g.georgopoulos,akatopodis,tmalliotakis
+Contributors: enartia,ggeorgopoulos,akatopodis
 Author URI: https://www.papaki.com
 Tags: ecommerce, woocommerce, payment gateway
-Tested up to: 6.9
-Requires at least: 4.0
+Tested up to: 7.1
+Requires at least: 6.4
 Stable tag: 3.2.0
-WC tested up to: 10.4.2
+WC tested up to: 11.2.1
 License: GPLv3 or later
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
-PHP: 7.4
+Requires PHP: 7.4
 
 
 Adds Piraeus Bank paycenter as a payment Gateway for WooCommerce
