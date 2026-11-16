@@ -81,6 +81,10 @@ In these cases you should follow the [instructions](https://docs.woocommerce.com
 
 = 3.2.1 =
 * Stricter handling of bank responses.
+* The number of installments follows the configured maximum for the order amount.
+* Less detail in the debug log and in error messages shown to shoppers.
+* HPOS: order meta is stored through the order object, and compatibility is declared.
+* The transactions table is created once on install instead of being checked on every request.
 
 = 3.2.0 =
 Code refactoring.
