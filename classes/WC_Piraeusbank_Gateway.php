@@ -698,6 +698,7 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
      * @return void
      */
     public function check_piraeusbank_response() {
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- The bank's callback cannot carry a WordPress nonce. A success response is verified by its HashKey, the fail and cancel routes by the session check.
         global $wpdb;
 
         $pb_message   = [];
@@ -958,6 +959,7 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
         wp_redirect( $redirect_url );
 
         exit;
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
     }
 
     /**
@@ -970,7 +972,7 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
      * @return \WC_Order|false
      */
     private function get_own_order( $merchant_reference ) {
-        if ( ! is_string( $merchant_reference ) || 1 !== preg_match( '/^\d+\z/', $merchant_reference ) ) {
+        if ( 1 !== preg_match( '/^\d+\z/', (string) $merchant_reference ) ) {
             return false;
         }
 
