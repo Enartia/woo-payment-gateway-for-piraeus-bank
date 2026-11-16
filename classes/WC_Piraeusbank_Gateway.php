@@ -694,39 +694,28 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
         $this->safe_log( '---- End of Piraeus Response ----' );
 
         if ( isset( $_REQUEST['peiraeus'] ) && ( $_REQUEST['peiraeus'] === 'success' ) ) {
-            $ResultCode = (int) sanitize_text_field( $_REQUEST['ResultCode'] );
-            $order_id   = sanitize_text_field( $_REQUEST['MerchantReference'] );
-            $order      = new \WC_Order( $order_id );
+            $order_id = isset( $_REQUEST['MerchantReference'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['MerchantReference'] ) ) : '';
+            $order    = $this->get_own_order( $order_id );
 
-            if ( ! $order || ! $order->get_id() ) {
-                $this->safe_log( '---- Invalid Order ID -----', $order_id );
-
-                wp_redirect( wc_get_checkout_url() );
-                exit;
+            if ( ! $order ) {
+                $this->safe_log( '---- Piraeus response rejected: unknown order, or not paid with Piraeus Bank -----', $order_id );
+                $this->reject_response();
             }
 
-
+            // A ResultCode error carries no HashKey, so the request cannot be authenticated.
+            // Anyone can send it, so it must not change the order: the shopper can pay again.
+            $ResultCode = isset( $_REQUEST['ResultCode'] ) ? (int) sanitize_text_field( wp_unslash( $_REQUEST['ResultCode'] ) ) : -1;
             if ( $ResultCode !== 0 ) {
-                $message      = __( 'A technical problem occured. <br />The transaction wasn\'t successful, payment wasn\'t received.', Application::PLUGIN_NAMESPACE );
-                $message_type = 'error';
-                $this->set_message( $order, $message, $message_type );
-
-                wc_add_notice( __( 'Payment error:', Application::PLUGIN_NAMESPACE ) . $message, $message_type );
-                $order->update_status( 'failed' );
-
-                $this->safe_log( '---- Piraeus Error -----', $message . ' ResultCode !== 0' );
-
-                $checkout_url = wc_get_checkout_url();
-                wp_redirect( $checkout_url );
-                exit;
+                $this->safe_log( '---- Piraeus Error -----', 'ResultCode ' . $ResultCode . ' for order ' . $order_id . ', order left unchanged' );
+                $this->reject_response();
             }
 
-            $ResponseCode       = sanitize_text_field( $_REQUEST['ResponseCode'] );
-            $StatusFlag         = sanitize_text_field( $_REQUEST['StatusFlag'] );
-            $HashKey            = sanitize_text_field( $_REQUEST['HashKey'] );
-            $SupportReferenceID = absint( $_REQUEST['SupportReferenceID'] );
-            $ApprovalCode       = sanitize_text_field( $_REQUEST['ApprovalCode'] );
-            $Parameters         = sanitize_text_field( $_REQUEST['Parameters'] );
+            $ResponseCode       = sanitize_text_field( wp_unslash( $_REQUEST['ResponseCode'] ?? '' ) );
+            $StatusFlag         = sanitize_text_field( wp_unslash( $_REQUEST['StatusFlag'] ?? '' ) );
+            $HashKey            = sanitize_text_field( wp_unslash( $_REQUEST['HashKey'] ?? '' ) );
+            $SupportReferenceID = absint( $_REQUEST['SupportReferenceID'] ?? 0 );
+            $ApprovalCode       = sanitize_text_field( wp_unslash( $_REQUEST['ApprovalCode'] ?? '' ) );
+            $Parameters         = sanitize_text_field( wp_unslash( $_REQUEST['Parameters'] ?? '' ) );
             $TransactionId      = isset( $_REQUEST['TransactionId'] ) ? absint( $_REQUEST['TransactionId'] ) : '';
 
 
@@ -748,50 +737,37 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
                 $order_id
             );
 
+            // The ticket is the secret the hash is keyed with, so it is never logged.
             $tt = $wpdb->get_results( $ttquery );
 
-            $this->safe_log( '---- ttquery -----', [ $ttquery, $tt ] );
-            $this->safe_log( '---- End of ttquery ----' );
-
-            $hasHashKeyNotMatched = true;
+            $transTicket = null;
 
             foreach ($tt as $transaction) {
-                if ( ! $hasHashKeyNotMatched ) {
+                $candidate    = $transaction->trans_ticket;
+                $stcon        = $candidate . $this->pb_PosId . $this->pb_AcquirerId . $order_id . $ApprovalCode . $Parameters . $ResponseCode . $SupportReferenceID . $AuthStatus . $PackageNo . $StatusFlag;
+                $conHash      = strtoupper( hash( 'sha256', $stcon ) );
+                $stconHmac    = $candidate . ';' . $this->pb_PosId . ';' . $this->pb_AcquirerId . ';' . $order_id . ';' . $ApprovalCode . ';' . $Parameters . ';' . $ResponseCode . ';' . $SupportReferenceID . ';' . $AuthStatus . ';' . $PackageNo . ';' . $StatusFlag;
+                $consHashHmac = strtoupper( hash_hmac( 'sha256', $stconHmac, $candidate ) );
+
+                if ( hash_equals( $consHashHmac, $HashKey ) || hash_equals( $conHash, $HashKey ) ) {
+                    $transTicket = $candidate;
                     break;
                 }
-
-                $transTicket  = $transaction->trans_ticket;
-                $stcon        = $transTicket . $this->pb_PosId . $this->pb_AcquirerId . $order_id . $ApprovalCode . $Parameters . $ResponseCode . $SupportReferenceID . $AuthStatus . $PackageNo . $StatusFlag;
-                $conHash      = strtoupper( hash( 'sha256', $stcon ) );
-                $stconHmac    = $transTicket . ';' . $this->pb_PosId . ';' . $this->pb_AcquirerId . ';' . $order_id . ';' . $ApprovalCode . ';' . $Parameters . ';' . $ResponseCode . ';' . $SupportReferenceID . ';' . $AuthStatus . ';' . $PackageNo . ';' . $StatusFlag;
-                $consHashHmac = strtoupper( hash_hmac( 'sha256', $stconHmac, $transTicket ) );
-
-			    if ( $consHashHmac !== $HashKey && $conHash !== $HashKey ) {
-					continue;
-				}
-
-                $hasHashKeyNotMatched = false;
             }
 
-            if ( $hasHashKeyNotMatched ) {
-                $message      = __( 'Thank you for shopping with us. <br />However, the transaction wasn\'t successful, payment wasn\'t received.', Application::PLUGIN_NAMESPACE );
-                $message_type = 'error';
-                $pb_message   = [ 'message' => $message, 'message_type' => $message_type ];
+            // A response whose hash does not match comes from someone other than the bank. It changes no order.
+            if ( $transTicket === null ) {
+                $this->safe_log( '---- Piraeus response rejected: HashKey does not match -----', $order_id );
+                $this->reject_response();
+            }
 
-                $this->generic_add_meta( $order_id, '_piraeusbank_message', $pb_message );
-                $this->generic_add_meta( $order_id, '_piraeusbank_message_debug', [ $pb_message, $consHashHmac . '!=' . $HashKey ] );
-
-				$order->update_status( 'failed' );
-
-				// Clear session after processing
-				if ( WC()->session ) {
-					WC()->session->set( 'pb_pending_order_id', null );
-				}
-
-				$checkout_url = wc_get_checkout_url();
-				wp_redirect( $checkout_url );
-				exit;
-			}
+            // The bank can send the same response twice, and the ticket is deleted after a payment.
+            // An order that is already paid or closed is never changed again.
+            if ( ! $order->needs_payment() ) {
+                $this->safe_log( '---- Piraeus response ignored: order no longer needs payment -----', [ 'order_id' => $order_id, 'status' => $order->get_status() ] );
+                wp_safe_redirect( $this->get_return_url( $order ) );
+                exit;
+            }
 
             if ( $ResponseCode == 0 || $ResponseCode == 8 || $ResponseCode == 10 || $ResponseCode == 16 ) {
                 $this->generic_add_meta( $order_id, '_piraeusbank_transaction_id', $TransactionId );
@@ -886,7 +862,7 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
         }
 
         if ( isset( $_REQUEST['peiraeus'], $_REQUEST['MerchantReference'] ) && $_REQUEST['peiraeus'] === 'fail' ) {
-            $order_id     = sanitize_text_field( $_REQUEST['MerchantReference'] );
+            $order_id     = sanitize_text_field( wp_unslash( $_REQUEST['MerchantReference'] ) );
 
 			// Session validation: ensure the callback matches the user who initiated the payment
 			$session_order_id = WC()->session ? WC()->session->get( 'pb_pending_order_id' ) : null;
@@ -898,7 +874,12 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
 				exit;
 			}
 
-            $order        = new \WC_Order( $order_id );
+            // The fail route is not signed by the bank. It may only close a Piraeus order that is still unpaid.
+            $order = $this->get_own_order( $order_id );
+            if ( ! $order || ! $order->needs_payment() ) {
+                $this->safe_log( '---- Piraeus fail callback ignored: order not found, not paid with Piraeus Bank, or already paid -----', $order_id );
+                $this->reject_response();
+            }
             $message      = __( 'Thank you for shopping with us. <br />However, the transaction wasn\'t successful, payment wasn\'t received.', Application::PLUGIN_NAMESPACE );
             $message_type = 'error';
 
@@ -961,6 +942,39 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
 
         wp_redirect( $redirect_url );
 
+        exit;
+    }
+
+    /**
+     * Return the order a bank callback names, or false when the callback must not touch it.
+     *
+     * Accepts only a MerchantReference made of digits that names an existing order placed with
+     * this gateway, so a callback can never change an order paid with another payment method.
+     *
+     * @param string $merchant_reference MerchantReference from the request.
+     * @return \WC_Order|false
+     */
+    private function get_own_order( $merchant_reference ) {
+        if ( ! is_string( $merchant_reference ) || 1 !== preg_match( '/^\d+\z/', $merchant_reference ) ) {
+            return false;
+        }
+
+        $order = wc_get_order( (int) $merchant_reference );
+        if ( ! $order instanceof \WC_Order || $order->get_payment_method() !== $this->id ) {
+            return false;
+        }
+
+        return $order;
+    }
+
+    /**
+     * End a bank callback that was not accepted: no order changes, a generic notice, back to checkout.
+     *
+     * @return void Never returns.
+     */
+    private function reject_response() {
+        wc_add_notice( __( 'A technical problem occured. <br />The transaction wasn\'t successful, payment wasn\'t received.', Application::PLUGIN_NAMESPACE ), 'error' );
+        wp_safe_redirect( wc_get_checkout_url() );
         exit;
     }
 
