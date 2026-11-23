@@ -62,28 +62,15 @@ if ( class_exists( '\Automattic\WooCommerce\Blocks\Payments\Integrations\Abstrac
             }
 
             $amount = 0;
-            if ( absint( get_query_var( 'order-pay' ) ) ) {
-                $order_id = absint( get_query_var( 'order-pay' ) );
-                $order    = new \WC_Order( $order_id );
-                $amount   = $order->get_total();
+            $order  = absint( get_query_var( 'order-pay' ) ) ? wc_get_order( absint( get_query_var( 'order-pay' ) ) ) : false;
+            if ( $order ) {
+                $amount = $order->get_total();
             } elseif ( \WC()->cart && ! \WC()->cart->is_empty() ) {
                 $amount = \WC()->cart->total;
             }
 
             $pb_installments_variation = $this->gateway->get_option( 'pb_installments_variation' ) ?? '';
-            $max = $pb_installments;
-            if ( ! empty( $pb_installments_variation ) ) {
-                $max = 1;
-                $installments_split = explode( ',', $pb_installments_variation );
-                foreach ( $installments_split as $value ) {
-                    $installment = explode( ':', $value );
-                    if ( is_array( $installment ) && count( $installment ) === 2 && is_numeric( $installment[0] ) && is_numeric( $installment[1] ) ) {
-                        if ( $amount >= ( $installment[0] ) ) {
-                            $max = max( $max, (int) $installment[1] );
-                        }
-                    }
-                }
-            }
+            $max                       = $this->gateway->get_max_installments( $amount );
 
             $installmentsOptions = [];
             for ( $i = 1; $i <= $max; $i++ ) {

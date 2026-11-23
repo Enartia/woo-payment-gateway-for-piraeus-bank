@@ -12,6 +12,9 @@ class Application {
     public function __construct( $entrypoint ) {
         $this->entrypoint_path = $entrypoint;
 
+        // We're in plugins_loaded already (wooshop-piraeus.php), so the table exists before any gateway loads.
+        Installer::maybe_install();
+
         $this->init();
 
         add_action( 'init', [ $this, 'load_languages' ] );
@@ -33,35 +36,25 @@ class Application {
     }
 
     public function piraeusbank_message() {
-        $order_id = absint( get_query_var( 'order-received' ) );
-        $order    = new \WC_Order( $order_id );
-        if ( method_exists( $order, 'get_payment_method' ) ) {
-            $payment_method = $order->get_payment_method();
-        } else {
-            $payment_method = $order->payment_method;
+        if ( ! is_order_received_page() ) {
+            return;
         }
 
-        if ( is_order_received_page() && ( 'piraeusbank_gateway' == $payment_method ) ) {
-
-            $piraeusbank_message = '';
-            if ( method_exists( $order, 'get_meta' ) ) {
-                $piraeusbank_message = $order->get_meta( '_piraeusbank_message', true );
-            } else {
-                $piraeusbank_message = get_post_meta( $order_id, '_piraeusbank_message', true );
-            }
-            if ( ! empty( $piraeusbank_message ) ) {
-                $message      = $piraeusbank_message['message'];
-                $message_type = $piraeusbank_message['message_type'];
-                if ( method_exists( $order, 'delete_meta_data' ) ) {
-                    $order->delete_meta_data( '_piraeusbank_message' );
-                    $order->save_meta_data();
-                } else {
-                    delete_post_meta( $order_id, '_piraeusbank_message' );
-                }
-
-                wc_add_notice( $message, $message_type );
-            }
+        // wc_get_order() returns false for an unknown id, where new WC_Order() would throw.
+        $order = wc_get_order( absint( get_query_var( 'order-received' ) ) );
+        if ( ! $order || 'piraeusbank_gateway' !== $order->get_payment_method() ) {
+            return;
         }
+
+        $piraeusbank_message = $order->get_meta( '_piraeusbank_message', true );
+        if ( empty( $piraeusbank_message ) || ! is_array( $piraeusbank_message ) ) {
+            return;
+        }
+
+        $order->delete_meta_data( '_piraeusbank_message' );
+        $order->save_meta_data();
+
+        wc_add_notice( $piraeusbank_message['message'], $piraeusbank_message['message_type'] );
     }
 
     public function woocommerce_add_piraeusbank_gateway( $methods ) {
@@ -121,7 +114,7 @@ class Application {
         global $wpdb;
 
         if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class) ) {
-            \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( $wpdb->prefix . 'piraeusbank_transactions', $this->entrypoint_path, true );
+            \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', $this->entrypoint_path, true );
         }
     }
 }

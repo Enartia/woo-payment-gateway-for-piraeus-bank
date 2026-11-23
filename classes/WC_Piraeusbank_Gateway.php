@@ -63,12 +63,6 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
         // Load the form fields.
         $this->init_form_fields();
 
-        $tableCheck = $wpdb->get_var( "SHOW TABLES LIKE '" . $wpdb->prefix . "piraeusbank_transactions'" );
-
-        if ( $tableCheck !== $wpdb->prefix . 'piraeusbank_transactions' ) {
-            $wpdb->query( 'CREATE TABLE IF NOT EXISTS ' . $wpdb->prefix . 'piraeusbank_transactions (id int(11) unsigned NOT NULL AUTO_INCREMENT, merch_ref varchar(50) not null, trans_ticket varchar(32) not null , timestamp datetime default null, PRIMARY KEY (id))' );
-        }
-
         // Load the settings.
         $this->init_settings();
 
@@ -157,25 +151,44 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
     }
 
     public function my_custom_checkout_field_update_order_meta( $order_id ) {
-        if ( ! empty( $_POST['cardholder_name'] ) ) {
-            update_post_meta( $order_id, 'cardholder_name', sanitize_text_field( $_POST['cardholder_name'] ) );
+        $order = wc_get_order( $order_id );
+        if ( $order && ! empty( $_POST['cardholder_name'] ) ) {
+            $order->update_meta_data( 'cardholder_name', sanitize_text_field( wp_unslash( $_POST['cardholder_name'] ) ) );
+            $order->save_meta_data();
         }
     }
 
+    /**
+     * Public IP address of this server, for the technical data the merchant sends to the bank.
+     *
+     * Asks api.ipify.org at most once a day and keeps the answer in a transient, so opening the
+     * settings page does not call an outside service every time. Only a valid IP address is
+     * accepted from that service; otherwise the IP the site's host name resolves to is used.
+     *
+     * @return string
+     */
+    private function get_server_ip() {
+        $ip = get_transient( 'piraeusbank_server_ip' );
+        if ( is_string( $ip ) && filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+            return $ip;
+        }
+
+        $response = wp_remote_get( 'https://api.ipify.org', [ 'timeout' => 5 ] );
+        $ip       = is_wp_error( $response ) ? '' : trim( wp_remote_retrieve_body( $response ) );
+
+        if ( ! filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+            $ip = gethostbyname( (string) wp_parse_url( home_url(), PHP_URL_HOST ) );
+        }
+
+        set_transient( 'piraeusbank_server_ip', $ip, DAY_IN_SECONDS );
+
+        return $ip;
+    }
+
     public function admin_options() {
-        $ch = curl_init();
-        curl_setopt( $ch, CURLOPT_URL, 'https://api.ipify.org' );
-        curl_setopt( $ch, CURLOPT_HEADER, 0 );
-        curl_setopt( $ch, CURLOPT_RETURNTRANSFER, 1 );
-        $output = curl_exec( $ch );
-
-        curl_close( $ch );
-
         echo '<h3>' . __( 'Piraeus Bank Gateway', Application::PLUGIN_NAMESPACE ) . '</h3>';
         echo '<p>' . __( 'Piraeus Bank Gateway allows you to accept payment through various channels such as Maestro, Mastercard, AMex cards, Diners  and Visa cards.', Application::PLUGIN_NAMESPACE ) . '</p>';
-        $base_url = $_SERVER['HTTP_HOST'] ?: $_SERVER['SERVER_NAME'];
-        // $host = (is_ssl() === true ? 'https://' : 'http://') . $base_url . '/';
-        $host = get_bloginfo( 'url' ) . '/';
+        $host = esc_html( get_bloginfo( 'url' ) . '/' );
 
 
         echo '<div style="border: 1px dashed #000; display: inline-block; padding: 10px;">';
@@ -188,8 +201,7 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
         echo '<li><strong>Failure page:</strong> ' . $host . ( get_option( 'permalink_structure' ) ? 'wc-api/WC_Piraeusbank_Gateway?peiraeus=fail' : '?wc-api=WC_Piraeusbank_Gateway&peiraeus=fail' ) . ' </li>';
         echo '<li><strong>Backlink page:</strong> ' . $host . ( get_option( 'permalink_structure' ) ? 'wc-api/WC_Piraeusbank_Gateway?peiraeus=cancel' : '?wc-api=WC_Piraeusbank_Gateway&peiraeus=cancel' ) . ' </li>';
         echo '<li><strong>Response method :</strong> GET / POST  (Preferred one: POST)</li>';
-        $ip = ! empty( $output ) ? $output : gethostbyname( $base_url );
-        echo '<li><strong>Server Ip:</strong> ' . $ip . '</li>';
+        echo '<li><strong>Server Ip:</strong> ' . esc_html( $this->get_server_ip() ) . '</li>';
         echo '</ul>';
         echo '<p style="font-style:italic;">* Σημείωση: Τα urls Success, Failure, Backlink δημιουργούνται αυτόματα απο το plugin μας, ΔΕΝ χρείαζεται να δημιουργήσετε εσείς κάποια  επισπρόσθετη σελίδα</p>';
         echo '</div>';
@@ -403,6 +415,36 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
     }
 
     /**
+     * Highest number of installments the merchant allows for an order or cart of this amount.
+     *
+     * With "pb_installments_variation" filled ("80:2, 160:4"), the highest count whose minimum the
+     * amount reaches applies and "pb_installments" is ignored, as the settings page describes.
+     * Checkout shows this many options, and process_payment() and the ticket request cap a
+     * posted or stored count to it, so a shopper cannot ask the bank for more.
+     *
+     * @param float|string $amount Order or cart total.
+     * @return int Between 1 and 24.
+     */
+    public function get_max_installments( $amount ) {
+        $max = (int) $this->pb_installments;
+
+        if ( $this->pb_installments_variation !== '' ) {
+            $max = 1;
+            foreach ( explode( ',', $this->pb_installments_variation ) as $rule ) {
+                $parts = array_map( 'trim', explode( ':', $rule ) );
+                if ( count( $parts ) !== 2 || ! is_numeric( $parts[0] ) || ! is_numeric( $parts[1] ) ) {
+                    continue;
+                }
+                if ( (float) $amount >= (float) $parts[0] ) {
+                    $max = max( $max, (int) $parts[1] );
+                }
+            }
+        }
+
+        return min( 24, max( 1, $max ) );
+    }
+
+    /**
      * @return void
      */
     public function payment_fields() {
@@ -411,37 +453,18 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
         $amount = 0;
 
         //get: order or cart total, to compute max installments number.
-        if ( absint( get_query_var( 'order-pay' ) ) ) {
-            $order_id = absint( get_query_var( 'order-pay' ) );
-            $order    = new \WC_Order( $order_id );
-            $amount   = $order->get_total();
-        } elseif ( ! $woocommerce->cart->is_empty() ) {
+        $order = absint( get_query_var( 'order-pay' ) ) ? wc_get_order( absint( get_query_var( 'order-pay' ) ) ) : false;
+        if ( $order ) {
+            $amount = $order->get_total();
+        } elseif ( $woocommerce->cart && ! $woocommerce->cart->is_empty() ) {
             $amount = $woocommerce->cart->total;
         }
 
         if ( $description = $this->get_description() ) {
-            echo wpautop( wptexturize( $description ) );
+            echo wp_kses_post( wpautop( wptexturize( $description ) ) );
         }
 
-        $max_installments       = $this->pb_installments ?? 1;
-        $installments_variation = $this->pb_installments_variation ?? [];
-
-        if ( ! empty( $installments_variation ) ) {
-            $max_installments   = 1; // initialize the max installments
-            $installments_split = explode( ',', $installments_variation );
-            foreach ($installments_split as $value) {
-                $installment = explode( ':', $value );
-                if ( ( is_array( $installment ) && count( $installment ) !== 2 ) ||
-                    ( ! is_numeric( $installment[0] ) || ! is_numeric( $installment[1] ) ) ) {
-                    // not valid rule for installments
-                    continue;
-                }
-
-                if ( $amount >= ( $installment[0] ) ) {
-                    $max_installments = $installment[1];
-                }
-            }
-        }
+        $max_installments = $this->get_max_installments( $amount );
 
         if ( $max_installments > 1 ) {
                 $doseis_field = '<p class="form-row ">
@@ -486,14 +509,8 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
         $requestType   = $this->pb_authorize === "yes" ? '00' : '02';
         $ExpirePreauth = $this->pb_authorize === "yes" ? '30' : '0';
 
-        if ( method_exists( $order, 'get_meta' ) ) {
-            $installments = $order->get_meta( '_doseis' );
-            if ( $installments === '' ) {
-                $installments = 1;
-            }
-        } else {
-            $installments = get_post_meta( $order_id, '_doseis', 1 );
-        }
+        // The checkout block stores the count without process_payment(), so it is capped here as well.
+        $installments = min( max( 1, (int) $order->get_meta( '_doseis' ) ), $this->get_max_installments( $order->get_total() ) );
 
         try {
             if ( $this->pb_ProxyHost !== '' ) {
@@ -635,17 +652,15 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
                 </form>';
             }
 
-            echo __( 'An error occured, please contact the Administrator. ', Application::PLUGIN_NAMESPACE );
-            echo ( 'Result code is ' . sanitize_text_field( $oResult->IssueNewTicketResult->ResultCode ) );
-            echo ( '. : ' . sanitize_text_field( $oResult->IssueNewTicketResult->ResultDescription ) );
-            $order->add_order_note( __( 'Error' . sanitize_text_field( $oResult->IssueNewTicketResult->ResultCode ) . ':' . sanitize_text_field( $oResult->IssueNewTicketResult->ResultDescription ), '' ) );
+            // The bank's reason goes to the order note for the merchant; the shopper gets a generic message.
+            $order->add_order_note( 'Piraeus Bank ticket error ' . sanitize_text_field( $oResult->IssueNewTicketResult->ResultCode ) . ': ' . sanitize_text_field( $oResult->IssueNewTicketResult->ResultDescription ) );
         }
         catch ( \SoapFault $fault ) {
-            $order->add_order_note( __( 'Error' . sanitize_text_field( $fault ), '' ) );
-            echo __( 'Error' . sanitize_text_field( $fault ), '' );
+            // getMessage() only: the full exception text carries a stack trace with server paths.
+            $order->add_order_note( 'Piraeus Bank ticket error: ' . sanitize_text_field( $fault->getMessage() ) );
         }
 
-        return '';
+        return '<p>' . esc_html__( 'An error occured, please contact the Administrator. ', Application::PLUGIN_NAMESPACE ) . '</p>';
     }
 
     /**
@@ -660,7 +675,7 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
 
         $doseis = isset( $_POST[ $key ] ) ? (int) $_POST[ $key ] : 1;
         if ( $doseis > 0 ) {
-            $this->generic_add_meta( $order_id, '_doseis', $doseis );
+            $this->generic_add_meta( $order_id, '_doseis', min( $doseis, $this->get_max_installments( $order->get_total() ) ) );
         }
 
         return [
@@ -683,6 +698,7 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
      * @return void
      */
     public function check_piraeusbank_response() {
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- The bank's callback cannot carry a WordPress nonce. A success response is verified by its HashKey, the fail and cancel routes by the session check.
         global $wpdb;
 
         $pb_message   = [];
@@ -694,39 +710,28 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
         $this->safe_log( '---- End of Piraeus Response ----' );
 
         if ( isset( $_REQUEST['peiraeus'] ) && ( $_REQUEST['peiraeus'] === 'success' ) ) {
-            $ResultCode = (int) sanitize_text_field( $_REQUEST['ResultCode'] );
-            $order_id   = sanitize_text_field( $_REQUEST['MerchantReference'] );
-            $order      = new \WC_Order( $order_id );
+            $order_id = isset( $_REQUEST['MerchantReference'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['MerchantReference'] ) ) : '';
+            $order    = $this->get_own_order( $order_id );
 
-            if ( ! $order || ! $order->get_id() ) {
-                $this->safe_log( '---- Invalid Order ID -----', $order_id );
-
-                wp_redirect( wc_get_checkout_url() );
-                exit;
+            if ( ! $order ) {
+                $this->safe_log( '---- Piraeus response rejected: unknown order, or not paid with Piraeus Bank -----', $order_id );
+                $this->reject_response();
             }
 
-
+            // A ResultCode error carries no HashKey, so the request cannot be authenticated.
+            // Anyone can send it, so it must not change the order: the shopper can pay again.
+            $ResultCode = isset( $_REQUEST['ResultCode'] ) ? (int) sanitize_text_field( wp_unslash( $_REQUEST['ResultCode'] ) ) : -1;
             if ( $ResultCode !== 0 ) {
-                $message      = __( 'A technical problem occured. <br />The transaction wasn\'t successful, payment wasn\'t received.', Application::PLUGIN_NAMESPACE );
-                $message_type = 'error';
-                $this->set_message( $order, $message, $message_type );
-
-                wc_add_notice( __( 'Payment error:', Application::PLUGIN_NAMESPACE ) . $message, $message_type );
-                $order->update_status( 'failed' );
-
-                $this->safe_log( '---- Piraeus Error -----', $message . ' ResultCode !== 0' );
-
-                $checkout_url = wc_get_checkout_url();
-                wp_redirect( $checkout_url );
-                exit;
+                $this->safe_log( '---- Piraeus Error -----', 'ResultCode ' . $ResultCode . ' for order ' . $order_id . ', order left unchanged' );
+                $this->reject_response();
             }
 
-            $ResponseCode       = sanitize_text_field( $_REQUEST['ResponseCode'] );
-            $StatusFlag         = sanitize_text_field( $_REQUEST['StatusFlag'] );
-            $HashKey            = sanitize_text_field( $_REQUEST['HashKey'] );
-            $SupportReferenceID = absint( $_REQUEST['SupportReferenceID'] );
-            $ApprovalCode       = sanitize_text_field( $_REQUEST['ApprovalCode'] );
-            $Parameters         = sanitize_text_field( $_REQUEST['Parameters'] );
+            $ResponseCode       = sanitize_text_field( wp_unslash( $_REQUEST['ResponseCode'] ?? '' ) );
+            $StatusFlag         = sanitize_text_field( wp_unslash( $_REQUEST['StatusFlag'] ?? '' ) );
+            $HashKey            = sanitize_text_field( wp_unslash( $_REQUEST['HashKey'] ?? '' ) );
+            $SupportReferenceID = absint( $_REQUEST['SupportReferenceID'] ?? 0 );
+            $ApprovalCode       = sanitize_text_field( wp_unslash( $_REQUEST['ApprovalCode'] ?? '' ) );
+            $Parameters         = sanitize_text_field( wp_unslash( $_REQUEST['Parameters'] ?? '' ) );
             $TransactionId      = isset( $_REQUEST['TransactionId'] ) ? absint( $_REQUEST['TransactionId'] ) : '';
 
 
@@ -748,50 +753,37 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
                 $order_id
             );
 
+            // The ticket is the secret the hash is keyed with, so it is never logged.
             $tt = $wpdb->get_results( $ttquery );
 
-            $this->safe_log( '---- ttquery -----', [ $ttquery, $tt ] );
-            $this->safe_log( '---- End of ttquery ----' );
-
-            $hasHashKeyNotMatched = true;
+            $transTicket = null;
 
             foreach ($tt as $transaction) {
-                if ( ! $hasHashKeyNotMatched ) {
+                $candidate    = $transaction->trans_ticket;
+                $stcon        = $candidate . $this->pb_PosId . $this->pb_AcquirerId . $order_id . $ApprovalCode . $Parameters . $ResponseCode . $SupportReferenceID . $AuthStatus . $PackageNo . $StatusFlag;
+                $conHash      = strtoupper( hash( 'sha256', $stcon ) );
+                $stconHmac    = $candidate . ';' . $this->pb_PosId . ';' . $this->pb_AcquirerId . ';' . $order_id . ';' . $ApprovalCode . ';' . $Parameters . ';' . $ResponseCode . ';' . $SupportReferenceID . ';' . $AuthStatus . ';' . $PackageNo . ';' . $StatusFlag;
+                $consHashHmac = strtoupper( hash_hmac( 'sha256', $stconHmac, $candidate ) );
+
+                if ( hash_equals( $consHashHmac, $HashKey ) || hash_equals( $conHash, $HashKey ) ) {
+                    $transTicket = $candidate;
                     break;
                 }
-
-                $transTicket  = $transaction->trans_ticket;
-                $stcon        = $transTicket . $this->pb_PosId . $this->pb_AcquirerId . $order_id . $ApprovalCode . $Parameters . $ResponseCode . $SupportReferenceID . $AuthStatus . $PackageNo . $StatusFlag;
-                $conHash      = strtoupper( hash( 'sha256', $stcon ) );
-                $stconHmac    = $transTicket . ';' . $this->pb_PosId . ';' . $this->pb_AcquirerId . ';' . $order_id . ';' . $ApprovalCode . ';' . $Parameters . ';' . $ResponseCode . ';' . $SupportReferenceID . ';' . $AuthStatus . ';' . $PackageNo . ';' . $StatusFlag;
-                $consHashHmac = strtoupper( hash_hmac( 'sha256', $stconHmac, $transTicket ) );
-
-			    if ( $consHashHmac !== $HashKey && $conHash !== $HashKey ) {
-					continue;
-				}
-
-                $hasHashKeyNotMatched = false;
             }
 
-            if ( $hasHashKeyNotMatched ) {
-                $message      = __( 'Thank you for shopping with us. <br />However, the transaction wasn\'t successful, payment wasn\'t received.', Application::PLUGIN_NAMESPACE );
-                $message_type = 'error';
-                $pb_message   = [ 'message' => $message, 'message_type' => $message_type ];
+            // A response whose hash does not match comes from someone other than the bank. It changes no order.
+            if ( $transTicket === null ) {
+                $this->safe_log( '---- Piraeus response rejected: HashKey does not match -----', $order_id );
+                $this->reject_response();
+            }
 
-                $this->generic_add_meta( $order_id, '_piraeusbank_message', $pb_message );
-                $this->generic_add_meta( $order_id, '_piraeusbank_message_debug', [ $pb_message, $consHashHmac . '!=' . $HashKey ] );
-
-				$order->update_status( 'failed' );
-
-				// Clear session after processing
-				if ( WC()->session ) {
-					WC()->session->set( 'pb_pending_order_id', null );
-				}
-
-				$checkout_url = wc_get_checkout_url();
-				wp_redirect( $checkout_url );
-				exit;
-			}
+            // The bank can send the same response twice, and the ticket is deleted after a payment.
+            // An order that is already paid or closed is never changed again.
+            if ( ! $order->needs_payment() ) {
+                $this->safe_log( '---- Piraeus response ignored: order no longer needs payment -----', [ 'order_id' => $order_id, 'status' => $order->get_status() ] );
+                wp_safe_redirect( $this->get_return_url( $order ) );
+                exit;
+            }
 
             if ( $ResponseCode == 0 || $ResponseCode == 8 || $ResponseCode == 10 || $ResponseCode == 16 ) {
                 $this->generic_add_meta( $order_id, '_piraeusbank_transaction_id', $TransactionId );
@@ -886,7 +878,7 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
         }
 
         if ( isset( $_REQUEST['peiraeus'], $_REQUEST['MerchantReference'] ) && $_REQUEST['peiraeus'] === 'fail' ) {
-            $order_id     = sanitize_text_field( $_REQUEST['MerchantReference'] );
+            $order_id     = sanitize_text_field( wp_unslash( $_REQUEST['MerchantReference'] ) );
 
 			// Session validation: ensure the callback matches the user who initiated the payment
 			$session_order_id = WC()->session ? WC()->session->get( 'pb_pending_order_id' ) : null;
@@ -898,7 +890,12 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
 				exit;
 			}
 
-            $order        = new \WC_Order( $order_id );
+            // The fail route is not signed by the bank. It may only close a Piraeus order that is still unpaid.
+            $order = $this->get_own_order( $order_id );
+            if ( ! $order || ! $order->needs_payment() ) {
+                $this->safe_log( '---- Piraeus fail callback ignored: order not found, not paid with Piraeus Bank, or already paid -----', $order_id );
+                $this->reject_response();
+            }
             $message      = __( 'Thank you for shopping with us. <br />However, the transaction wasn\'t successful, payment wasn\'t received.', Application::PLUGIN_NAMESPACE );
             $message_type = 'error';
 
@@ -931,7 +928,7 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
             $this->safe_log( '---- Piraeus Payment Canceled -----' );
 
 			// Session validation for cancel callback
-			$cancel_order_id = isset( $_REQUEST['MerchantReference'] ) ? filter_var( $_REQUEST['MerchantReference'], FILTER_SANITIZE_STRING ) : null;
+			$cancel_order_id = isset( $_REQUEST['MerchantReference'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['MerchantReference'] ) ) : null;
 			$session_order_id = WC()->session ? WC()->session->get( 'pb_pending_order_id' ) : null;
 
 			// Reject if session doesn't match (when order ID is provided)
@@ -961,6 +958,40 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
 
         wp_redirect( $redirect_url );
 
+        exit;
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
+    }
+
+    /**
+     * Return the order a bank callback names, or false when the callback must not touch it.
+     *
+     * Accepts only a MerchantReference made of digits that names an existing order placed with
+     * this gateway, so a callback can never change an order paid with another payment method.
+     *
+     * @param string $merchant_reference MerchantReference from the request.
+     * @return \WC_Order|false
+     */
+    private function get_own_order( $merchant_reference ) {
+        if ( 1 !== preg_match( '/^\d+\z/', (string) $merchant_reference ) ) {
+            return false;
+        }
+
+        $order = wc_get_order( (int) $merchant_reference );
+        if ( ! $order instanceof \WC_Order || $order->get_payment_method() !== $this->id ) {
+            return false;
+        }
+
+        return $order;
+    }
+
+    /**
+     * End a bank callback that was not accepted: no order changes, a generic notice, back to checkout.
+     *
+     * @return void Never returns.
+     */
+    private function reject_response() {
+        wc_add_notice( __( 'A technical problem occured. <br />The transaction wasn\'t successful, payment wasn\'t received.', Application::PLUGIN_NAMESPACE ), 'error' );
+        wp_safe_redirect( wc_get_checkout_url() );
         exit;
     }
 
@@ -1101,7 +1132,8 @@ class WC_Piraeusbank_Gateway extends \WC_Payment_Gateway {
     private function pb_getCardholderName( $orderId, $name, $enabled ) {
         //check if has the field
         if ( $enabled == 'yes' ) {
-            $cardholder_field = get_post_meta( $orderId, 'cardholder_name', true );
+            $order            = wc_get_order( $orderId );
+            $cardholder_field = $order ? $order->get_meta( 'cardholder_name', true ) : '';
             if ( ! empty( $cardholder_field ) ) {
                 return $this->pb_convertNonLatinToLatin( $cardholder_field );
             }

@@ -128,7 +128,8 @@ class Checkout_Block {
             }
         }
 
-        return $max_installments;
+        // With no installments configured the select would get no options, which WooCommerce refuses.
+        return min( 24, max( 1, (int) $max_installments ) );
     }
 
     public function set_additional_field_value( $key, $value, $group, $wc_object ) {
@@ -139,7 +140,11 @@ class Checkout_Block {
             if ( $pb_cardholder_name !== 'yes' ) {
                 return;
             }
-            update_post_meta( $wc_object->get_id(), 'cardholder_name', sanitize_text_field( $value ) );
+            // Through the order object, so the value lands in the order tables when HPOS is on.
+            $wc_object->update_meta_data( 'cardholder_name', sanitize_text_field( $value ) );
+            if ( $wc_object->get_id() ) {
+                $wc_object->save_meta_data();
+            }
             return;
         }
 
@@ -149,7 +154,11 @@ class Checkout_Block {
             if ( $v < 1 ) {
                 $v = 1;
             }
-            update_post_meta( $wc_object->get_id(), '_doseis', $v );
+            // Capped to the merchant's maximum when the ticket is requested (generate_piraeusbank_form).
+            $wc_object->update_meta_data( '_doseis', $v );
+            if ( $wc_object->get_id() ) {
+                $wc_object->save_meta_data();
+            }
             return;
         }
     }

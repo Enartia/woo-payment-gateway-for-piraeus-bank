@@ -4,7 +4,7 @@ Author URI: https://www.papaki.com
 Tags: ecommerce, woocommerce, payment gateway
 Tested up to: 7.1
 Requires at least: 6.4
-Stable tag: 3.2.0
+Stable tag: 3.2.1
 WC tested up to: 11.2.1
 License: GPLv3 or later
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
@@ -78,6 +78,13 @@ In these cases you should follow the [instructions](https://docs.woocommerce.com
 
 
 == Changelog ==
+
+= 3.2.1 =
+* Stricter handling of bank responses.
+* The number of installments follows the configured maximum for the order amount.
+* Less detail in the debug log and in error messages shown to shoppers.
+* HPOS: order meta is stored through the order object, and compatibility is declared.
+* The transactions table is created once on install instead of being checked on every request.
 
 = 3.2.0 =
 Code refactoring.
